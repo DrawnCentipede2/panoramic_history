@@ -15,7 +15,7 @@ Last updated: 2026-07-19
 | 2 | Dark theme CSS + z-index overlay layers | ✅ Done |
 | 3 | Pannellum + loading spinner + test panorama | ✅ Done |
 | 4 | Onboarding gate UI (no permission yet) | ✅ Done |
-| 5 | Device orientation permission + touch fallback | ⏸️ Waiting on user cross-check |
+| 5 | Device orientation permission + touch fallback | ✅ Done |
 | 6 | Auto-rotate affordance + kill on input | ⏳ Pending |
 | 7 | Persistent overlays (watermark, safety, minimap) | ⏳ Pending |
 | 8 | 10s interaction timer + unlock CTA | ⏳ Pending |
@@ -210,15 +210,27 @@ iOS often requires HTTPS for motion permission. Plain HTTP on LAN may fall back 
 5. Viewer `resize()` on rotate/fullscreen.
 
 ### Verification result
-- Agent self-check: structural HTML updated
-- User cross-check: ⏸️ Waiting (re-test on S25 after hotfix)
-- Marked complete: ❌ Not yet
+- Agent self-check: ✅ verify scripts / structure OK
+- User cross-check: ✅ Pass on Samsung S25 (2026-07-19)
+- Marked complete: ✅ Yes
 
 ---
 
-### Step 6 — Auto-rotate
-- Status: ⏳ Pending  
-- Verification: _TBD_
+## Step 6 — Auto-rotate affordance
+
+### Goal
+After the panorama is shown, start a slow horizontal auto-rotate.
+Kill it instantly on first intentional touch/drag or meaningful gyro move.
+Respect `prefers-reduced-motion`.
+
+### Verification result
+- Status: 🔄 In progress
+- User cross-check: ⏸️ Waiting
+
+---
+
+### Step 6b notes placeholder
+- n/a
 
 ### Step 7 — Persistent overlays
 - Status: ⏳ Pending  
