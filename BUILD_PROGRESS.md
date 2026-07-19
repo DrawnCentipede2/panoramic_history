@@ -20,8 +20,8 @@ Last updated: 2026-07-19
 | 7 | Persistent overlays (watermark, SVG minimap) | ✅ Done |
 | 8 | 10s interaction timer + dismissible unlock FAB | ✅ Done |
 | 9 | Lead-gen email modal (from FAB) | ✅ Done |
-| 10 | Telemetry + subscribe fetch stubs | ⏸️ Waiting on user cross-check |
-| 11 | Final smoke-test on real phone | ⏳ Pending |
+| 10 | Telemetry + subscribe fetch stubs | ✅ Done |
+| 11 | Final smoke-test on real phone | ⏸️ Waiting on user cross-check |
 
 Status legend: ⏳ Pending · 🔄 In progress · ✅ Done · ❌ Blocked · ⏸️ Waiting on user
 
@@ -306,17 +306,37 @@ Open: `http://127.0.0.1:8765/` or phone `http://192.168.0.135:8765/`
 
 ### Verification result
 - Agent self-check: structure ✅; live mock health/telemetry/subscribe ✅
-- User cross-check: ⏸️ Waiting
+- User cross-check: ✅ Pass (2026-07-19)
+- Marked complete: ✅ Yes
+
+---
+
+## Step 11 — Final smoke test
+
+### Goal
+Run the full acceptance checklist on a real phone against the FastAPI mock.
+Temporary step banners removed for a cleaner MVP surface.
+
+### Final acceptance checklist
+Use: `http://192.168.0.135:8765/` (server: `python -m uvicorn backend.main:app --host 0.0.0.0 --port 8765`)
+
+1. [ ] Gate shows brand + safety checkbox + Start
+2. [ ] Panorama preloads; Start enables after load + consent
+3. [ ] Start → gate dismisses; drag works; gyro works if allowed
+4. [ ] Auto-rotate starts; stops on touch/tilt
+5. [ ] Watermark + minimap (blinking Stand Here) visible
+6. [ ] Fullscreen icon toggles enter/exit
+7. [ ] After ~10s visible time, FAB appears (no tilt required)
+8. [ ] FAB X dismisses for session; FAB open opens email modal
+9. [ ] Valid email → success → modal auto-closes → FAB gone
+10. [ ] Network: telemetry `page_loaded` / `unlock_shown` / `unlock_clicked` + subscribe `200`
+11. [ ] No page scrolling; overlays stay usable in portrait/landscape
+
+### Verification result
+- Status: ⏸️ Waiting on user
 - Marked complete: ❌ Not yet
 
----
-
-### Step 11 — Final smoke test
-- Status: ⏳ Pending  
-- Verification: real-device checklist from the build prompt
-
----
-## Decision log
+---## Decision log
 | Date | Decision |
 |------|----------|
 | 2026-07-19 | Build in small verified steps; stop after each step until verified. |

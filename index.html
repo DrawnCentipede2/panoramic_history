@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <!--
-    TimePortal // Checkpoint Charlie — Step 10: telemetry + subscribe API stubs.
-    Prefer running the FastAPI mock (serves this page + /api/* on one origin):
-      python -m uvicorn backend.main:app --host 0.0.0.0 --port 8765
+    TimePortal // Checkpoint Charlie — MVP smoke-test build.
+    Run with: python -m uvicorn backend.main:app --host 0.0.0.0 --port 8765
+    Swap PANORAMA_URL when the real Checkpoint Charlie asset is ready.
   -->
   <meta
     name="viewport"
@@ -725,42 +725,11 @@
       display: block;
     }
 
-    /* Temporary Step 10 check banner (on top of gate) */
-    #step10-banner {
-      position: absolute;
-      z-index: var(--z-banner);
-      left: 50%;
-      top: calc(0.45rem + var(--safe-top));
-      transform: translateX(-50%);
-      width: min(94vw, 28rem);
-      text-align: center;
-      border: var(--border);
-      background: #241c16;
-      padding: 0.45rem 0.6rem;
-      font-size: 0.72rem;
-      line-height: 1.35;
-      color: var(--text-muted);
-      pointer-events: none;
-      transition: opacity 0.35s ease;
-    }
-
-    #step10-banner strong {
-      color: var(--text);
-    }
-
-    body.has-started #step10-banner {
-      opacity: 0;
-    }
+    /* (Step banners removed for final MVP surface) */
   </style>
 </head>
 <body>
   <div id="app">
-    <div id="step10-banner" role="status">
-      <strong>Step 10 check:</strong>
-      Run the FastAPI mock on port 8765. After load, Network should show
-      telemetry posts; FAB show/click + subscribe should return 200.
-    </div>
-
     <!-- z0: panorama preloads under the gate -->
     <div id="panorama" role="img" aria-label="360 degree panorama viewer"></div>
 
@@ -1761,7 +1730,7 @@
       }
 
       window.TimePortal = {
-        step: 10,
+        step: 11,
         panoramaUrl: PANORAMA_URL,
         apiBase: API_BASE,
         sessionId: sessionId,
