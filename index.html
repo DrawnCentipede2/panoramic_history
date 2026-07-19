@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <!--
-    TimePortal // Checkpoint Charlie — Step 6: auto-rotate affordance.
-    After Start, slow horizontal auto-rotate begins.
-    First intentional touch/drag or meaningful tilt kills it instantly.
+    TimePortal // Checkpoint Charlie — Step 7: persistent overlays.
+    Sleek watermark + SVG minimap (Friedrichstraße / Zimmerstraße).
+    Safety consent stays on the Start gate (not a permanent pill).
   -->
   <meta
     name="viewport"
@@ -204,13 +204,21 @@
       pointer-events: none;
     }
 
+    /* Tiny minimalist brand watermark */
     #watermark {
       position: static;
       max-width: min(70vw, 14rem);
-      font-size: 0.68rem;
-      line-height: 1.25;
-      padding: 0.35rem 0.45rem;
+      margin: 0;
+      border: none;
+      background: transparent;
+      color: rgba(245, 240, 232, 0.88);
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      line-height: 1.3;
+      padding: 0.2rem 0;
       text-align: left;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
     }
 
     /*
@@ -262,16 +270,80 @@
       display: block;
     }
 
+    /*
+      Minimap: small diagram of Friedrichstraße (N–S) crossing Zimmerstraße (E–W).
+      Green blinking dot = “Stand Here” near Checkpoint Charlie.
+    */
     #minimap {
       position: absolute;
-      left: calc(0.75rem + var(--safe-left));
-      bottom: calc(5.5rem + var(--safe-bottom));
-      width: 7.5rem;
-      height: 5.5rem;
-      display: flex;
-      align-items: flex-end;
+      left: calc(0.7rem + var(--safe-left));
+      bottom: calc(1.2rem + var(--safe-bottom));
+      width: 8.25rem;
+      height: auto;
+      padding: 0.4rem 0.4rem 0.35rem;
+      border: var(--border);
+      background: rgba(18, 14, 12, 0.72);
+      pointer-events: none;
     }
 
+    #minimap svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    #minimap .map-label {
+      fill: rgba(245, 240, 232, 0.7);
+      font-size: 4.2px;
+      font-family: system-ui, sans-serif;
+    }
+
+    #minimap .stand-label {
+      fill: #7dffa3;
+      font-size: 4.4px;
+      font-weight: 700;
+      font-family: system-ui, sans-serif;
+    }
+
+    /* Soft blink for the “Stand Here” marker */
+    #minimap .stand-dot {
+      fill: #3dff7a;
+      transform-origin: center;
+      animation: stand-blink 1.2s ease-in-out infinite;
+    }
+
+    #minimap .stand-ring {
+      fill: none;
+      stroke: #3dff7a;
+      stroke-width: 0.7;
+      opacity: 0.7;
+      transform-origin: center;
+      animation: stand-ring 1.2s ease-in-out infinite;
+    }
+
+    @keyframes stand-blink {
+      0%,
+      100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.35;
+      }
+    }
+
+    @keyframes stand-ring {
+      0%,
+      100% {
+        opacity: 0.75;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.15;
+        transform: scale(1.55);
+      }
+    }
+
+    /* Unlock CTA stays hidden until Step 8 (10s interaction timer) */
     #unlock-cta {
       position: absolute;
       left: 50%;
@@ -279,6 +351,7 @@
       transform: translateX(-50%);
       min-width: 14rem;
       text-align: center;
+      display: none;
     }
 
     /*
@@ -431,8 +504,8 @@
       display: none;
     }
 
-    /* Temporary Step 6 check banner (on top of gate) */
-    #step6-banner {
+    /* Temporary Step 7 check banner (on top of gate) */
+    #step7-banner {
       position: absolute;
       z-index: var(--z-banner);
       left: 50%;
@@ -450,20 +523,21 @@
       transition: opacity 0.35s ease;
     }
 
-    #step6-banner strong {
+    #step7-banner strong {
       color: var(--text);
     }
 
-    body.has-started #step6-banner {
+    body.has-started #step7-banner {
       opacity: 0;
     }
   </style>
 </head>
 <body>
   <div id="app">
-    <div id="step6-banner" role="status">
-      <strong>Step 6 check:</strong>
-      After Start, the view should slowly auto-rotate. Touch or tilt to stop it instantly.
+    <div id="step7-banner" role="status">
+      <strong>Step 7 check:</strong>
+      After Start, look for a tiny top-left watermark and a bottom-left minimap
+      with a blinking green “Stand Here” dot.
     </div>
 
     <!-- z0: panorama preloads under the gate -->
@@ -478,9 +552,7 @@
     <!-- z10: shown only after Start -->
     <div id="ui-layer" aria-hidden="true">
       <div id="top-bar">
-        <div id="watermark" class="placeholder-box">
-          TimePortal // Checkpoint Charlie
-        </div>
+        <p id="watermark">TimePortal // Checkpoint Charlie</p>
         <!-- Icon toggle: enter (expand) / exit (compress) fullscreen -->
         <button
           id="fullscreen-btn"
@@ -509,10 +581,50 @@
           </svg>
         </button>
       </div>
-      <div id="minimap" class="placeholder-box">Minimap placeholder</div>
-      <div id="unlock-cta" class="placeholder-box interactive">
-        Unlock CTA placeholder
+      <!--
+        Minimal junction map:
+        - Vertical strip = Friedrichstraße (north–south)
+        - Horizontal strip = Zimmerstraße (east–west)
+        - Green dot = stand near Checkpoint Charlie
+      -->
+      <div id="minimap" aria-label="Minimap: Friedrichstrasse and Zimmerstrasse junction">
+        <svg viewBox="0 0 100 78" role="img" aria-hidden="true">
+          <!-- Soft ground -->
+          <rect x="0" y="0" width="100" height="78" fill="rgba(245,240,232,0.03)"></rect>
+
+          <!-- Friedrichstraße (N–S) -->
+          <rect x="44" y="4" width="12" height="70" fill="rgba(245,240,232,0.18)"></rect>
+          <rect x="49.2" y="4" width="1.6" height="70" fill="rgba(245,240,232,0.28)"></rect>
+
+          <!-- Zimmerstraße (E–W) -->
+          <rect x="6" y="33" width="88" height="10" fill="rgba(245,240,232,0.18)"></rect>
+          <rect x="6" y="37.2" width="88" height="1.6" fill="rgba(245,240,232,0.28)"></rect>
+
+          <!-- Tiny checkpoint booth mark on the island -->
+          <rect
+            x="47.5"
+            y="30.5"
+            width="5"
+            height="4"
+            fill="rgba(196,165,116,0.85)"
+          ></rect>
+
+          <!-- Street labels -->
+          <text class="map-label" x="50" y="10" text-anchor="middle">N</text>
+          <text class="map-label" x="50" y="74" text-anchor="middle">Friedrichstr.</text>
+          <text class="map-label" x="10" y="31">Zimmerstr.</text>
+
+          <!-- Stand Here marker -->
+          <circle class="stand-ring" cx="50" cy="45" r="5"></circle>
+          <circle class="stand-dot" cx="50" cy="45" r="2.4"></circle>
+          <text class="stand-label" x="50" y="55.5" text-anchor="middle">Stand Here</text>
+        </svg>
       </div>
+
+      <!-- Wired in Step 8 -->
+      <button id="unlock-cta" class="interactive" type="button" hidden>
+        Unlock 1961 Tank Crisis Era
+      </button>
       <!-- Centered temporary tip (keeps clear of minimap / CTA) -->
       <div id="control-hint" aria-live="polite"></div>
     </div>
@@ -1019,7 +1131,7 @@
       }
 
       window.TimePortal = {
-        step: 6,
+        step: 7,
         panoramaUrl: PANORAMA_URL,
         getViewer: function () {
           return viewer;

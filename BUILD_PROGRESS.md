@@ -16,8 +16,8 @@ Last updated: 2026-07-19
 | 3 | Pannellum + loading spinner + test panorama | ✅ Done |
 | 4 | Onboarding gate UI (no permission yet) | ✅ Done |
 | 5 | Device orientation permission + touch fallback | ✅ Done |
-| 6 | Auto-rotate affordance + kill on input | ⏸️ Waiting on user cross-check |
-| 7 | Persistent overlays (watermark, safety, minimap) | ⏳ Pending |
+| 6 | Auto-rotate affordance + kill on input | ✅ Done |
+| 7 | Persistent overlays (watermark, SVG minimap) | ⏸️ Waiting on user cross-check |
 | 8 | 10s interaction timer + unlock CTA | ⏳ Pending |
 | 9 | Lead-gen modal + email validation | ⏳ Pending |
 | 10 | Telemetry + subscribe fetch stubs | ⏳ Pending |
@@ -230,15 +230,31 @@ Respect `prefers-reduced-motion` (no auto-rotate).
 4. With OS “reduce motion” on, no auto-rotate
 
 ### Verification result
-- Status: 🔄 In progress
-- User cross-check: ⏸️ Waiting
-- Marked complete: ❌ Not yet
+- Agent self-check: ✅ verify_step6.py
+- User cross-check: ✅ Pass (2026-07-19)
+- Marked complete: ✅ Yes
 
 ---
 
-### Step 7 — Persistent overlays
-- Status: ⏳ Pending  
-- Verification: _TBD_
+## Step 7 — Persistent overlays (watermark + minimap)
+
+### Goal
+Polish the persistent UI overlays:
+- Tiny top-left watermark (already present; refine styling)
+- Safety stays on the Start gate (consent) — not a permanent pill
+- Real SVG minimap of Friedrichstraße / Zimmerstraße with blinking “Stand Here” green dot
+
+### How to verify
+1. Hard-refresh and Start
+2. Tiny watermark top-left (not a heavy box)
+3. Bottom-left SVG minimap with street cross + blinking green “Stand Here”
+4. Unlock button still hidden (comes in Step 8)
+
+### Verification result
+- Status: ⏸️ Waiting on user
+- Marked complete: ❌ Not yet
+
+---
 
 ### Step 8 — Interaction timer + unlock CTA
 - Status: ⏳ Pending  
