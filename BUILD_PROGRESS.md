@@ -18,8 +18,8 @@ Last updated: 2026-07-19
 | 5 | Device orientation permission + touch fallback | ✅ Done |
 | 6 | Auto-rotate affordance + kill on input | ✅ Done |
 | 7 | Persistent overlays (watermark, SVG minimap) | ✅ Done |
-| 8 | 10s interaction timer + unlock CTA | ⏸️ Waiting on user cross-check |
-| 9 | Lead-gen modal + email validation | ⏳ Pending |
+| 8 | 10s interaction timer + dismissible unlock FAB | ⏸️ Waiting on user cross-check |
+| 9 | Lead-gen email modal (from FAB) | ⏸️ Waiting on user cross-check |
 | 10 | Telemetry + subscribe fetch stubs | ⏳ Pending |
 | 11 | Final smoke-test on real phone | ⏳ Pending |
 
@@ -256,32 +256,30 @@ Polish the persistent UI overlays:
 
 ---
 
-## Step 8 — 10s interaction timer + unlock CTA
+## Steps 8–9 — Unlock FAB + waitlist modal
+
+### UX decision (user)
+- Prefer a **small semi-transparent FAB** over a giant bottom bar
+- FAB is **dismissible with X** for the whole browser session (`sessionStorage`)
+- FAB click opens a **lightweight email modal** (“under reconstruction / notify at launch”)
 
 ### Goal
-Accumulate 10 seconds of real interaction (touch-pan / meaningful gyro).
-Ignore auto-rotate and hidden-tab time. Then fade in
-“Unlock 1961 Tank Crisis Era” at bottom-center.
-Modal opens in Step 9 — Step 8 only shows the button.
+1. After 10s of real pan/tilt, fade in the FAB
+2. X hides FAB for the rest of the tab session
+3. FAB opens email modal with validation + success state
 
 ### How to verify
-1. Hard-refresh → Start
-2. Keep dragging / tilting for about 10 seconds total (not just waiting)
-3. Unlock button fades in at bottom-center
-4. Standing still / only watching auto-rotate should NOT unlock it
-5. Click logs to console for now (modal = Step 9)
-
-Debug on desktop: after Start, in console run `TimePortal.getInteractionMs()` while panning.
+1. Hard-refresh → Start → pan ~10s → small FAB appears
+2. Tap **X** → FAB gone; refresh same tab → still gone
+3. (New tab / clear session) pan again → FAB returns → tap chip → modal opens
+4. Invalid email → error; valid email → success message
+5. Escape / backdrop / modal X closes modal
 
 ### Verification result
 - Status: ⏸️ Waiting on user
 - Marked complete: ❌ Not yet
 
 ---
-
-### Step 9 — Lead-gen modal
-- Status: ⏳ Pending  
-- Verification: _TBD_
 
 ### Step 10 — Telemetry + FastAPI mock
 - Status: ⏳ Pending  

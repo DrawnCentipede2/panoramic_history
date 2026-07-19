@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <!--
-    TimePortal // Checkpoint Charlie — Step 8: 10s interaction timer + unlock CTA.
-    After ~10s of real panning/tilting (not auto-rotate / hidden tab),
-    fade in “Unlock 1961 Tank Crisis Era”. Modal comes in Step 9.
+    TimePortal // Checkpoint Charlie — Steps 8–9:
+    After ~10s of real interaction, show a small dismissible FAB.
+    FAB opens a lightweight email waitlist modal.
   -->
   <meta
     name="viewport"
@@ -344,38 +344,92 @@
       }
     }
 
-    /* Unlock CTA: hidden until 10s of real interaction accumulates */
-    #unlock-cta {
-      appearance: none;
+    /*
+      Unlock FAB: compact semi-transparent floating chip (not a giant bar).
+      Appears after 10s of real interaction. Dismissible with X for the session.
+    */
+    #unlock-fab {
       position: absolute;
       left: 50%;
       bottom: calc(1.15rem + var(--safe-bottom));
-      transform: translateX(-50%) translateY(8px);
-      width: min(92vw, 20rem);
-      margin: 0;
-      padding: 0.85rem 1rem;
+      transform: translateX(-50%) translateY(10px);
+      width: min(86vw, 15.5rem);
+      display: flex;
+      align-items: stretch;
       border: var(--border);
-      background: #f5f0e8;
-      color: #1a1612;
-      font: inherit;
-      font-size: 0.9rem;
-      font-weight: 700;
-      text-align: center;
-      cursor: pointer;
+      border-radius: 0.35rem;
+      background: rgba(32, 26, 20, 0.78);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
       transition:
-        opacity 0.55s ease,
-        transform 0.55s ease,
-        visibility 0.55s ease;
+        opacity 0.5s ease,
+        transform 0.5s ease,
+        visibility 0.5s ease;
     }
 
-    #unlock-cta.is-visible {
+    #unlock-fab.is-visible {
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
       transform: translateX(-50%) translateY(0);
+    }
+
+    #unlock-fab.is-dismissed {
+      display: none !important;
+    }
+
+    #unlock-fab-open {
+      appearance: none;
+      flex: 1 1 auto;
+      margin: 0;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      text-align: left;
+      padding: 0.65rem 0.55rem 0.65rem 0.75rem;
+      cursor: pointer;
+    }
+
+    #unlock-fab-open .fab-eyebrow {
+      display: block;
+      font-size: 0.62rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--accent-warm);
+      margin-bottom: 0.15rem;
+    }
+
+    #unlock-fab-open .fab-title {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    /* Small clear X — hides FAB for the rest of this browser session */
+    #unlock-fab-dismiss {
+      appearance: none;
+      flex: 0 0 auto;
+      width: 2rem;
+      margin: 0;
+      border: none;
+      border-left: var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    #unlock-fab-dismiss:hover,
+    #unlock-fab-dismiss:focus-visible {
+      color: var(--text);
+      background: rgba(245, 240, 232, 0.06);
     }
 
     /*
@@ -524,12 +578,146 @@
       display: inline-block;
     }
 
+    /* ========== Layer 30: lightweight email waitlist modal ========== */
     #modal-layer {
+      position: absolute;
+      inset: 0;
+      z-index: var(--z-modal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding:
+        calc(1rem + var(--safe-top))
+        calc(1rem + var(--safe-right))
+        calc(1rem + var(--safe-bottom))
+        calc(1rem + var(--safe-left));
+      background: rgba(8, 6, 5, 0.55);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    #modal-layer.is-open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    #modal-card {
+      position: relative;
+      width: min(92vw, 21rem);
+      border: var(--border);
+      border-radius: 0.4rem;
+      background: rgba(32, 26, 20, 0.92);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      padding: 1.25rem 1.1rem 1.15rem;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    /* Fallback when backdrop-filter is unsupported */
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      #modal-card,
+      #unlock-fab {
+        background: rgba(28, 22, 18, 0.96);
+      }
+    }
+
+    #modal-close {
+      appearance: none;
+      position: absolute;
+      top: 0.45rem;
+      right: 0.45rem;
+      width: 2rem;
+      height: 2rem;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 1.15rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    #modal-title {
+      margin: 0 1.5rem 0.55rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    #modal-copy {
+      margin: 0 0 1rem;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: var(--text-muted);
+    }
+
+    #waitlist-form {
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    #waitlist-email {
+      width: 100%;
+      border: var(--border);
+      border-radius: 0.25rem;
+      background: rgba(18, 14, 12, 0.65);
+      color: var(--text);
+      font: inherit;
+      font-size: 16px; /* reduces iOS focus-zoom */
+      padding: 0.7rem 0.75rem;
+    }
+
+    #waitlist-email::placeholder {
+      color: rgba(245, 240, 232, 0.4);
+    }
+
+    #waitlist-submit {
+      appearance: none;
+      width: 100%;
+      border: none;
+      border-radius: 0.25rem;
+      background: #f5f0e8;
+      color: #1a1612;
+      font: inherit;
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+    }
+
+    #waitlist-submit:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+
+    #waitlist-error {
+      margin: 0;
+      font-size: 0.75rem;
+      color: #ff8f70;
+      min-height: 1.1em;
+    }
+
+    #modal-success {
+      display: none;
+      margin: 0.35rem 0 0;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      font-weight: 600;
+    }
+
+    #modal-card.is-success #waitlist-form,
+    #modal-card.is-success #modal-copy {
       display: none;
     }
 
-    /* Temporary Step 8 check banner (on top of gate) */
-    #step8-banner {
+    #modal-card.is-success #modal-success {
+      display: block;
+    }
+
+    /* Temporary Step 8–9 check banner (on top of gate) */
+    #step89-banner {
       position: absolute;
       z-index: var(--z-banner);
       left: 50%;
@@ -547,21 +735,21 @@
       transition: opacity 0.35s ease;
     }
 
-    #step8-banner strong {
+    #step89-banner strong {
       color: var(--text);
     }
 
-    body.has-started #step8-banner {
+    body.has-started #step89-banner {
       opacity: 0;
     }
   </style>
 </head>
 <body>
   <div id="app">
-    <div id="step8-banner" role="status">
-      <strong>Step 8 check:</strong>
-      After Start, pan/tilt for about 10 seconds total. The unlock button should
-      fade in at the bottom. Idle / auto-rotate time should not count.
+    <div id="step89-banner" role="status">
+      <strong>Steps 8–9 check:</strong>
+      After ~10s of panning, a small FAB appears. X dismisses it for this session.
+      Tap the FAB to open the email waitlist modal.
     </div>
 
     <!-- z0: panorama preloads under the gate -->
@@ -645,10 +833,23 @@
         </svg>
       </div>
 
-      <button id="unlock-cta" class="interactive" type="button">
-        Unlock 1961 Tank Crisis Era
-      </button>
-      <!-- Centered temporary tip (keeps clear of minimap / CTA) -->
+      <!-- Compact dismissible FAB (replaces the old full-width unlock bar) -->
+      <div id="unlock-fab" class="interactive" hidden>
+        <button id="unlock-fab-open" type="button">
+          <span class="fab-eyebrow">Era unlock</span>
+          <span class="fab-title">1961 Tank Crisis</span>
+        </button>
+        <button
+          id="unlock-fab-dismiss"
+          type="button"
+          aria-label="Dismiss for this session"
+          title="Dismiss"
+        >
+          ×
+        </button>
+      </div>
+
+      <!-- Centered temporary tip (keeps clear of minimap / FAB) -->
       <div id="control-hint" aria-live="polite"></div>
     </div>
 
@@ -682,7 +883,38 @@
       </div>
     </div>
 
-    <div id="modal-layer" hidden></div>
+    <!-- Lightweight waitlist modal (opened from the FAB) -->
+    <div
+      id="modal-layer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      aria-hidden="true"
+    >
+      <div id="modal-card">
+        <button id="modal-close" type="button" aria-label="Close">×</button>
+        <h2 id="modal-title">Era under reconstruction</h2>
+        <p id="modal-copy">
+          The 1961 Cold War Tank Crisis is still being mapped. Leave your email
+          and we’ll notify you as soon as this era is ready — free permanent
+          access at launch.
+        </p>
+        <form id="waitlist-form" novalidate>
+          <input
+            id="waitlist-email"
+            type="email"
+            name="email"
+            autocomplete="email"
+            inputmode="email"
+            placeholder="you@email.com"
+            required
+          />
+          <button id="waitlist-submit" type="submit">Join waiting list</button>
+          <p id="waitlist-error" role="alert" aria-live="polite"></p>
+        </form>
+        <p id="modal-success">You're on the list. See you in the past.</p>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -702,7 +934,16 @@
       var controlHint = document.getElementById("control-hint");
       var safetyCheck = document.getElementById("safety-check");
       var fullscreenBtn = document.getElementById("fullscreen-btn");
-      var unlockCta = document.getElementById("unlock-cta");
+      var unlockFab = document.getElementById("unlock-fab");
+      var unlockFabOpen = document.getElementById("unlock-fab-open");
+      var unlockFabDismiss = document.getElementById("unlock-fab-dismiss");
+      var modalLayer = document.getElementById("modal-layer");
+      var modalCard = document.getElementById("modal-card");
+      var modalClose = document.getElementById("modal-close");
+      var waitlistForm = document.getElementById("waitlist-form");
+      var waitlistEmail = document.getElementById("waitlist-email");
+      var waitlistSubmit = document.getElementById("waitlist-submit");
+      var waitlistError = document.getElementById("waitlist-error");
 
       var viewer = null;
       var panoramaReady = false;
@@ -716,16 +957,35 @@
       var autoRotateActive = false;
       var orientationBaseline = null; // first stable gyro sample after Start
 
-      // Step 8: cumulative active-interaction timer for the unlock CTA
+      // Step 8: cumulative active-interaction timer for the unlock FAB
       var INTERACTION_GOAL_MS = 10000; // 10 seconds of real interaction
       var GYRO_ACTIVE_THRESHOLD = 2.5; // smaller than kill threshold; counts as "looking around"
+      var DISMISS_STORAGE_KEY = "timeportal_unlock_dismissed";
       var activeInteractionMs = 0;
       var isPointerInteracting = false;
       var gyroHoldUntil = 0;
       var interactionLastTick = null;
       var interactionRaf = null;
-      var unlockShown = false;
+      var unlockShown = false; // true once FAB was revealed OR dismissed for session
       var prevOrientSample = null;
+      var lastFocusBeforeModal = null;
+
+      // Was the FAB dismissed earlier in this browser tab session?
+      function wasUnlockDismissed() {
+        try {
+          return window.sessionStorage.getItem(DISMISS_STORAGE_KEY) === "1";
+        } catch (err) {
+          return false;
+        }
+      }
+
+      function rememberUnlockDismissed() {
+        try {
+          window.sessionStorage.setItem(DISMISS_STORAGE_KEY, "1");
+        } catch (err) {
+          // Private mode may block storage — in-memory unlockShown still works
+        }
+      }
 
       function hideLoader() {
         loadingOverlay.classList.remove("is-error");
@@ -1019,18 +1279,96 @@
         return now < gyroHoldUntil;
       }
 
-      // Fade the unlock button into view once (idempotent)
+      // Hide the FAB for the rest of this browser session
+      function dismissUnlockFab() {
+        unlockShown = true;
+        rememberUnlockDismissed();
+        unlockFab.classList.remove("is-visible");
+        unlockFab.classList.add("is-dismissed");
+        unlockFab.hidden = true;
+        console.log("[TimePortal Step 8] Unlock FAB dismissed for this session.");
+      }
+
+      // Fade the compact FAB into view once (idempotent)
       function showUnlockCta() {
-        if (unlockShown) {
+        if (unlockShown || wasUnlockDismissed()) {
+          unlockShown = true;
           return;
         }
+
         unlockShown = true;
-        unlockCta.classList.add("is-visible");
+        unlockFab.hidden = false;
+        unlockFab.classList.remove("is-dismissed");
+        // Next frame so the CSS transition can run
+        window.requestAnimationFrame(function () {
+          unlockFab.classList.add("is-visible");
+        });
         console.log(
-          "[TimePortal Step 8] Unlock CTA shown after",
+          "[TimePortal Step 8] Unlock FAB shown after",
           Math.round(activeInteractionMs),
           "ms of interaction."
         );
+      }
+
+      function openWaitlistModal() {
+        lastFocusBeforeModal = document.activeElement;
+        modalCard.classList.remove("is-success");
+        waitlistError.textContent = "";
+        waitlistForm.reset();
+        waitlistSubmit.disabled = false;
+        waitlistSubmit.textContent = "Join waiting list";
+        modalLayer.classList.add("is-open");
+        modalLayer.setAttribute("aria-hidden", "false");
+        window.setTimeout(function () {
+          waitlistEmail.focus();
+        }, 50);
+      }
+
+      function closeWaitlistModal() {
+        modalLayer.classList.remove("is-open");
+        modalLayer.setAttribute("aria-hidden", "true");
+        if (lastFocusBeforeModal && typeof lastFocusBeforeModal.focus === "function") {
+          lastFocusBeforeModal.focus();
+        }
+      }
+
+      // Very small email check (good enough for MVP smoke tests)
+      function isValidEmail(value) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+      }
+
+      /**
+       * Submit waitlist email.
+       * Tries the future API route; if the mock backend is offline we still
+       * complete the success UI so the smoke-test flow is usable (Step 10 tightens this).
+       */
+      function submitWaitlist(email) {
+        waitlistSubmit.disabled = true;
+        waitlistSubmit.textContent = "Joining…";
+        waitlistError.textContent = "";
+
+        var payload = { email: email };
+        var apiBase = window.TIMEPORTAL_API_BASE || "";
+
+        return fetch(apiBase + "/api/v1/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+          .then(function (res) {
+            if (!res.ok) {
+              throw new Error("Subscribe failed with status " + res.status);
+            }
+            return res;
+          })
+          .catch(function (err) {
+            // No FastAPI mock yet — keep UX moving, log the stub failure
+            console.warn("[TimePortal Step 9] Subscribe stub offline/failed:", err);
+          })
+          .then(function () {
+            modalCard.classList.add("is-success");
+            console.log("[TimePortal Step 9] Waitlist success UI shown for", email);
+          });
       }
 
       // Animation-frame accumulator — pauses when tab is hidden or user is idle
@@ -1067,6 +1405,15 @@
       }
 
       function startInteractionTimer() {
+        // If user dismissed the FAB earlier this session, do not run the timer
+        if (wasUnlockDismissed()) {
+          unlockShown = true;
+          unlockFab.classList.add("is-dismissed");
+          unlockFab.hidden = true;
+          console.log("[TimePortal Step 8] FAB previously dismissed — timer skipped.");
+          return;
+        }
+
         if (interactionRaf != null) {
           return;
         }
@@ -1268,11 +1615,44 @@
         });
       }
 
-      // Step 8: button is visible only; modal wiring arrives in Step 9
-      unlockCta.addEventListener("click", function () {
-        console.log(
-          "[TimePortal Step 8] Unlock clicked — modal will be added in Step 9."
-        );
+      // FAB open → waitlist modal
+      unlockFabOpen.addEventListener("click", function () {
+        openWaitlistModal();
+      });
+
+      // FAB X → hide for the rest of this tab session
+      unlockFabDismiss.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        dismissUnlockFab();
+      });
+
+      modalClose.addEventListener("click", closeWaitlistModal);
+
+      // Click dimmed backdrop (outside the card) closes the modal
+      modalLayer.addEventListener("click", function (event) {
+        if (event.target === modalLayer) {
+          closeWaitlistModal();
+        }
+      });
+
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && modalLayer.classList.contains("is-open")) {
+          closeWaitlistModal();
+        }
+      });
+
+      waitlistForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var email = String(waitlistEmail.value || "").trim();
+
+        if (!isValidEmail(email)) {
+          waitlistError.textContent = "Please enter a valid email address.";
+          waitlistEmail.focus();
+          return;
+        }
+
+        submitWaitlist(email);
       });
 
       // Consent checkbox controls whether Start can be pressed
@@ -1334,7 +1714,7 @@
       }
 
       window.TimePortal = {
-        step: 8,
+        step: 9,
         panoramaUrl: PANORAMA_URL,
         getViewer: function () {
           return viewer;
@@ -1356,7 +1736,9 @@
         },
         isUnlockShown: function () {
           return unlockShown;
-        }
+        },
+        openWaitlistModal: openWaitlistModal,
+        closeWaitlistModal: closeWaitlistModal
       };
     })();
   </script>
