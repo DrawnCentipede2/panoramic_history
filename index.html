@@ -191,10 +191,7 @@
       pointer-events: auto;
     }
 
-    /*
-      Top bar: brand + safety share one row with a gap.
-      This prevents the portrait overlap seen on narrow Android phones.
-    */
+    /* Top bar: brand left, exit-fullscreen right (no permanent safety pill) */
     #top-bar {
       position: absolute;
       top: calc(0.65rem + var(--safe-top));
@@ -207,39 +204,37 @@
       pointer-events: none;
     }
 
-    #watermark,
-    #safety-alert {
+    #watermark {
       position: static;
-      flex: 1 1 0;
-      min-width: 0; /* allow text to wrap instead of overflowing */
-      max-width: calc(50% - 0.25rem);
+      max-width: min(70vw, 14rem);
       font-size: 0.68rem;
       line-height: 1.25;
       padding: 0.35rem 0.45rem;
-    }
-
-    #watermark {
       text-align: left;
     }
 
-    #safety-alert {
-      text-align: right;
-      color: var(--danger);
+    /*
+      Exit fullscreen button — only shown while the browser is in fullscreen.
+      pointer-events re-enabled via .interactive
+    */
+    #exit-fullscreen-btn {
+      appearance: none;
+      display: none;
+      flex-shrink: 0;
+      margin: 0;
+      border: var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.68rem;
+      font-weight: 600;
+      line-height: 1.25;
+      padding: 0.4rem 0.55rem;
+      cursor: pointer;
     }
 
-    /* Very narrow portrait: stack so nothing can collide */
-    @media (max-width: 380px) {
-      #top-bar {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.35rem;
-      }
-
-      #watermark,
-      #safety-alert {
-        max-width: 100%;
-        text-align: left;
-      }
+    #exit-fullscreen-btn.is-visible {
+      display: inline-block;
     }
 
     #minimap {
@@ -261,21 +256,26 @@
       text-align: center;
     }
 
-    /* Short hint after Start: gyro vs drag */
+    /*
+      Control hint sits in the vertical center so it does not collide
+      with the bottom-left minimap or bottom CTA.
+    */
     #control-hint {
       position: absolute;
       left: 50%;
-      bottom: calc(4.6rem + var(--safe-bottom));
-      transform: translateX(-50%);
-      max-width: min(90vw, 20rem);
+      top: 42%;
+      bottom: auto;
+      transform: translate(-50%, -50%);
+      max-width: min(86vw, 18rem);
       text-align: center;
-      font-size: 0.72rem;
+      font-size: 0.78rem;
       line-height: 1.35;
-      color: var(--text-muted);
+      color: var(--text);
       border: var(--border);
       background: var(--surface);
-      padding: 0.4rem 0.65rem;
+      padding: 0.55rem 0.75rem;
       opacity: 0;
+      pointer-events: none;
       transition: opacity 0.35s ease;
     }
 
@@ -327,10 +327,43 @@
     }
 
     #gate-sub {
-      margin: 0.65rem 0 1.25rem;
+      margin: 0.65rem 0 0.9rem;
       font-size: 0.8rem;
       line-height: 1.4;
       color: var(--text-muted);
+    }
+
+    /* Safety consent on the gate (replaces always-on top pill) */
+    #safety-consent {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.55rem;
+      text-align: left;
+      margin: 0 0 1rem;
+      padding: 0.65rem 0.7rem;
+      border: var(--border);
+      background: rgba(224, 164, 90, 0.08);
+    }
+
+    #safety-consent input {
+      margin-top: 0.15rem;
+      flex-shrink: 0;
+      width: 1.05rem;
+      height: 1.05rem;
+    }
+
+    #safety-consent label {
+      font-size: 0.78rem;
+      line-height: 1.35;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    #safety-consent .consent-title {
+      display: block;
+      font-weight: 700;
+      color: var(--danger);
+      margin-bottom: 0.2rem;
     }
 
     #start-btn {
@@ -353,7 +386,7 @@
 
     #start-btn:disabled {
       opacity: 0.55;
-      cursor: wait;
+      cursor: not-allowed;
     }
 
     #start-btn:not(:disabled):active {
@@ -404,9 +437,9 @@
 <body>
   <div id="app">
     <div id="step5-banner" role="status">
-      <strong>Step 5 fix check:</strong>
-      Top labels should not overlap. After Start, Android may enter fullscreen
-      (hides the browser bar). Drag/tilt should still work.
+      <strong>Step 5 UX check:</strong>
+      Tick the safety box, then Start. Drag hint should be centered (not on minimap).
+      In fullscreen, use “Exit fullscreen” top-right.
     </div>
 
     <!-- z0: panorama preloads under the gate -->
@@ -420,19 +453,25 @@
 
     <!-- z10: shown only after Start -->
     <div id="ui-layer" aria-hidden="true">
-      <!-- Shared top row so brand + safety cannot overlap on narrow phones -->
       <div id="top-bar">
         <div id="watermark" class="placeholder-box">
           TimePortal // Checkpoint Charlie
         </div>
-        <div id="safety-alert" class="placeholder-box">
-          Watch for traffic &amp; pedestrians
-        </div>
+        <!-- Only appears while the page is in browser fullscreen -->
+        <button
+          id="exit-fullscreen-btn"
+          class="interactive"
+          type="button"
+          aria-label="Exit fullscreen"
+        >
+          Exit fullscreen
+        </button>
       </div>
       <div id="minimap" class="placeholder-box">Minimap placeholder</div>
       <div id="unlock-cta" class="placeholder-box interactive">
         Unlock CTA placeholder
       </div>
+      <!-- Centered temporary tip (keeps clear of minimap / CTA) -->
       <div id="control-hint" aria-live="polite"></div>
     </div>
 
@@ -446,9 +485,19 @@
       <div id="gate-card">
         <p id="gate-brand">TimePortal // Checkpoint Charlie</p>
         <p id="gate-sub">
-          Tap Start to enter the 360° view. On iPhone, allow motion access
-          if asked so you can look around by moving your phone.
+          Historical 360° view. On iPhone, allow motion access if asked so you
+          can look around by moving your phone.
         </p>
+
+        <!-- Consent once at the beginning (cleaner than a permanent top pill) -->
+        <div id="safety-consent">
+          <input id="safety-check" type="checkbox" />
+          <label for="safety-check">
+            <span class="consent-title">Safety notice</span>
+            I will watch for traffic &amp; pedestrians if I use this outdoors.
+          </label>
+        </div>
+
         <button id="start-btn" type="button" disabled class="is-loading">
           <span class="spinner spinner-sm" aria-hidden="true"></span>
           <span id="start-btn-label">Loading…</span>
@@ -474,6 +523,8 @@
       var startBtnLabel = document.getElementById("start-btn-label");
       var uiLayer = document.getElementById("ui-layer");
       var controlHint = document.getElementById("control-hint");
+      var safetyCheck = document.getElementById("safety-check");
+      var exitFullscreenBtn = document.getElementById("exit-fullscreen-btn");
 
       var viewer = null;
       var panoramaReady = false;
@@ -496,13 +547,36 @@
         startBtnLabel.textContent = "Unavailable";
       }
 
+      /**
+       * Start stays disabled until:
+       * 1) panorama finished loading
+       * 2) user ticked the safety consent checkbox
+       */
+      function updateStartButtonState() {
+        if (!panoramaReady) {
+          startBtn.disabled = true;
+          startBtn.classList.add("is-loading");
+          startBtnLabel.textContent = "Loading…";
+          return;
+        }
+
+        startBtn.classList.remove("is-loading");
+
+        if (!safetyCheck.checked) {
+          startBtn.disabled = true;
+          startBtnLabel.textContent = "Confirm safety notice";
+          return;
+        }
+
+        startBtn.disabled = false;
+        startBtnLabel.textContent = "Start Time Travel";
+      }
+
       function markPanoramaReady() {
         panoramaReady = true;
         hideLoader();
-        startBtn.disabled = false;
-        startBtn.classList.remove("is-loading");
-        startBtnLabel.textContent = "Start Time Travel";
-        console.log("[TimePortal Step 5] Panorama ready — Start enabled.");
+        updateStartButtonState();
+        console.log("[TimePortal Step 5] Panorama ready — waiting for safety consent.");
       }
 
       function dismissGate() {
@@ -517,6 +591,22 @@
         if (viewer && typeof viewer.resize === "function") {
           viewer.resize();
         }
+      }
+
+      // Show/hide the Exit fullscreen button based on browser state
+      function syncFullscreenButton() {
+        var active =
+          document.fullscreenElement ||
+          document.webkitFullscreenElement ||
+          null;
+
+        if (active) {
+          exitFullscreenBtn.classList.add("is-visible");
+        } else {
+          exitFullscreenBtn.classList.remove("is-visible");
+        }
+
+        resizeViewer();
       }
 
       /**
@@ -550,6 +640,29 @@
         } catch (err) {
           console.warn("[TimePortal Step 5] Fullscreen error:", err);
           return Promise.resolve(false);
+        }
+      }
+
+      // Leave fullscreen when the user taps the exit button
+      function exitFullscreen() {
+        var exit =
+          document.exitFullscreen ||
+          document.webkitExitFullscreen ||
+          document.webkitCancelFullScreen;
+
+        if (!exit) {
+          return;
+        }
+
+        try {
+          var result = exit.call(document);
+          if (result && typeof result.catch === "function") {
+            result.catch(function (err) {
+              console.warn("[TimePortal Step 5] exitFullscreen failed:", err);
+            });
+          }
+        } catch (err) {
+          console.warn("[TimePortal Step 5] exitFullscreen error:", err);
         }
       }
 
@@ -627,7 +740,7 @@
        * 3) Always dismiss gate — touch-drag remains available as fallback
        */
       function startExperience() {
-        if (hasStarted || !panoramaReady) {
+        if (hasStarted || !panoramaReady || !safetyCheck.checked) {
           return;
         }
 
@@ -652,7 +765,7 @@
 
           // Try to hide browser chrome (best effort on Android Chrome)
           tryEnterFullscreen().then(function (fullscreenOk) {
-            resizeViewer();
+            syncFullscreenButton();
             console.log("[TimePortal Step 5] Started.", {
               permissionState: permissionState,
               gyroEnabled: gyroEnabled,
@@ -663,17 +776,24 @@
         });
       }
 
+      // Consent checkbox controls whether Start can be pressed
+      safetyCheck.addEventListener("change", updateStartButtonState);
+
+      startBtn.addEventListener("click", function () {
+        startExperience();
+      });
+
+      exitFullscreenBtn.addEventListener("click", function () {
+        exitFullscreen();
+      });
+
       // Keep the 360 canvas matched to the visible area
       window.addEventListener("resize", resizeViewer);
       window.addEventListener("orientationchange", function () {
         window.setTimeout(resizeViewer, 250);
       });
-      document.addEventListener("fullscreenchange", resizeViewer);
-      document.addEventListener("webkitfullscreenchange", resizeViewer);
-
-      startBtn.addEventListener("click", function () {
-        startExperience();
-      });
+      document.addEventListener("fullscreenchange", syncFullscreenButton);
+      document.addEventListener("webkitfullscreenchange", syncFullscreenButton);
 
       if (typeof pannellum === "undefined") {
         showLoaderError("Pannellum failed to load. Check your network and refresh.");

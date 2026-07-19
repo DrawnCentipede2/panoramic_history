@@ -18,6 +18,10 @@ checks = {
     "has_top_bar": 'id="top-bar"' in html,
     "has_fullscreen_helper": "tryEnterFullscreen" in html,
     "has_viewer_resize": "viewer.resize" in html,
+    "has_safety_consent": 'id="safety-check"' in html,
+    "no_persistent_safety_pill": 'id="safety-alert"' not in html,
+    "has_exit_fullscreen_btn": 'id="exit-fullscreen-btn"' in html,
+    "hint_centered": "top: 42%" in html,
 }
 
 for name, ok in checks.items():
