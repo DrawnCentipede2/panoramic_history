@@ -961,16 +961,21 @@
       // (no tilt/pan required — idle waiting counts too)
       var INTERACTION_GOAL_MS = 10000;
       var DISMISS_STORAGE_KEY = "timeportal_unlock_dismissed";
+      var SUBSCRIBED_STORAGE_KEY = "timeportal_waitlist_joined";
       var activeInteractionMs = 0;
       var interactionLastTick = null;
       var interactionRaf = null;
       var unlockShown = false; // true once FAB was revealed OR dismissed for session
       var lastFocusBeforeModal = null;
+      var successCloseTimer = null;
 
       // Was the FAB dismissed earlier in this browser tab session?
       function wasUnlockDismissed() {
         try {
-          return window.sessionStorage.getItem(DISMISS_STORAGE_KEY) === "1";
+          return (
+            window.sessionStorage.getItem(DISMISS_STORAGE_KEY) === "1" ||
+            window.sessionStorage.getItem(SUBSCRIBED_STORAGE_KEY) === "1"
+          );
         } catch (err) {
           return false;
         }
@@ -981,6 +986,14 @@
           window.sessionStorage.setItem(DISMISS_STORAGE_KEY, "1");
         } catch (err) {
           // Private mode may block storage — in-memory unlockShown still works
+        }
+      }
+
+      function rememberWaitlistJoined() {
+        try {
+          window.sessionStorage.setItem(SUBSCRIBED_STORAGE_KEY, "1");
+        } catch (err) {
+          // ignore storage failures
         }
       }
 
@@ -1310,11 +1323,37 @@
       }
 
       function closeWaitlistModal() {
+        if (successCloseTimer) {
+          window.clearTimeout(successCloseTimer);
+          successCloseTimer = null;
+        }
         modalLayer.classList.remove("is-open");
         modalLayer.setAttribute("aria-hidden", "true");
         if (lastFocusBeforeModal && typeof lastFocusBeforeModal.focus === "function") {
           lastFocusBeforeModal.focus();
         }
+      }
+
+      /**
+       * After a successful signup:
+       * 1) briefly show the success message
+       * 2) auto-close the modal
+       * 3) hide the FAB for the rest of this session (they already joined)
+       */
+      function finishWaitlistSuccess() {
+        modalCard.classList.add("is-success");
+        rememberWaitlistJoined();
+
+        if (successCloseTimer) {
+          window.clearTimeout(successCloseTimer);
+        }
+
+        successCloseTimer = window.setTimeout(function () {
+          successCloseTimer = null;
+          closeWaitlistModal();
+          dismissUnlockFab();
+          console.log("[TimePortal Step 9] Modal auto-closed after signup.");
+        }, 1600);
       }
 
       // Very small email check (good enough for MVP smoke tests)
@@ -1351,8 +1390,8 @@
             console.warn("[TimePortal Step 9] Subscribe stub offline/failed:", err);
           })
           .then(function () {
-            modalCard.classList.add("is-success");
             console.log("[TimePortal Step 9] Waitlist success UI shown for", email);
+            finishWaitlistSuccess();
           });
       }
 

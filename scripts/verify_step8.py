@@ -17,7 +17,8 @@ checks = {
     "has_email_input": 'id="waitlist-email"' in html,
     "has_success_copy": "You're on the list. See you in the past." in html,
     "has_open_modal_fn": "function openWaitlistModal" in html,
-    "has_subscribe_stub": "/api/v1/subscribe" in html,
+    "has_auto_close_success": "function finishWaitlistSuccess" in html,
+    "has_subscribed_session_key": "timeportal_waitlist_joined" in html,
     "has_step89_banner": "Steps 8–9 check" in html,
     "no_giant_unlock_bar_id": 'id="unlock-cta"' not in html,
 }
