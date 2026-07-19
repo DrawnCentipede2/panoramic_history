@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <!--
-    TimePortal // Checkpoint Charlie — Step 3: Pannellum + placeholder panorama.
-    Important: iOS DeviceOrientation later needs HTTPS or localhost (not file://).
-    Swap PANORAMA_URL in the script when the real Checkpoint Charlie image is ready.
+    TimePortal // Checkpoint Charlie — Step 4: blocking onboarding gate.
+    Start button only hides the gate for now.
+    Device orientation permission is wired in Step 5.
   -->
   <meta
     name="viewport"
@@ -14,7 +14,7 @@
   <meta name="theme-color" content="#1a1612" />
   <title>TimePortal // Checkpoint Charlie</title>
 
-  <!-- Pinned Pannellum 2.5.7 (do not use unversioned "latest") -->
+  <!-- Pinned Pannellum 2.5.7 -->
   <link
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.css"
@@ -22,17 +22,14 @@
   <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.js"></script>
 
   <style>
-    /* ========== Theme tokens ==========
-       Warm archival charcoal (history hint) instead of pure black.
-       Easy to refine later in one place.
-    */
+    /* Warm archival charcoal theme (refine later) */
     :root {
       --bg: #1a1612;
       --bg-deep: #120e0c;
       --text: #f5f0e8;
       --text-muted: rgba(245, 240, 232, 0.72);
       --border: 1px solid rgba(245, 240, 232, 0.16);
-      --surface: rgba(32, 26, 20, 0.92);
+      --surface: rgba(32, 26, 20, 0.94);
       --surface-soft: rgba(32, 26, 20, 0.72);
       --accent-warm: #c4a574;
       --danger: #e0a45a;
@@ -60,7 +57,7 @@
       padding: 0;
       width: 100%;
       height: 100%;
-      overflow: hidden;
+      overflow: hidden; /* page itself must not scroll */
       background: var(--bg-deep);
       color: var(--text);
       font-family:
@@ -84,18 +81,6 @@
       background: var(--bg-deep);
     }
 
-    .layer-label {
-      font-size: 0.7rem;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      border: var(--border);
-      background: var(--surface);
-      padding: 0.25rem 0.45rem;
-      border-radius: 2px;
-      pointer-events: none;
-    }
-
     .placeholder-box {
       border: var(--border);
       background: var(--surface-soft);
@@ -105,7 +90,7 @@
       padding: 0.45rem 0.6rem;
     }
 
-    /* ========== Layer 0: Pannellum fills this box ========== */
+    /* ========== Layer 0: panorama ========== */
     #panorama {
       position: absolute;
       inset: 0;
@@ -115,19 +100,17 @@
       background: var(--bg-deep);
     }
 
-    /* Make sure Pannellum's inner canvas area is truly full-screen */
     #panorama .pnlm-container {
       width: 100% !important;
       height: 100% !important;
       background: var(--bg-deep);
     }
 
-    /* Hide Pannellum's default "click to load" UI; we use autoLoad + our spinner */
     #panorama .pnlm-load-box {
       display: none !important;
     }
 
-    /* ========== Layer 5: loading spinner overlay ========== */
+    /* ========== Layer 5: loader (under gate; also mirrored in gate UI) ========== */
     #loading-overlay {
       position: absolute;
       inset: 0;
@@ -159,6 +142,12 @@
       animation: spin 0.8s linear infinite;
     }
 
+    .spinner.spinner-sm {
+      width: 1.15rem;
+      height: 1.15rem;
+      border-width: 2px;
+    }
+
     @keyframes spin {
       to {
         transform: rotate(360deg);
@@ -174,17 +163,24 @@
       line-height: 1.4;
     }
 
-    /* ========== Layer 10: persistent UI (still placeholders) ========== */
+    /* ========== Layer 10: UI placeholders (show only after Start) ========== */
     #ui-layer {
       position: absolute;
       inset: 0;
       z-index: var(--z-ui);
       pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.35s ease;
       padding:
         calc(0.75rem + var(--safe-top))
         calc(0.75rem + var(--safe-right))
         calc(0.75rem + var(--safe-bottom))
         calc(0.75rem + var(--safe-left));
+    }
+
+    /* Revealed after the user presses Start Time Travel */
+    body.has-started #ui-layer {
+      opacity: 1;
     }
 
     #ui-layer .interactive {
@@ -225,55 +221,98 @@
       text-align: center;
     }
 
-    /*
-      Step 3 only: gate stays visible as a light stack reminder,
-      but does NOT block dragging the panorama.
-      Steps 4–5 will restore a real blocking gate.
-    */
+    /* ========== Layer 20: FULL blocking onboarding gate ========== */
     #gate-layer {
       position: absolute;
       inset: 0;
       z-index: var(--z-gate);
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: center;
-      padding-top: calc(4.5rem + var(--safe-top));
-      background: transparent;
+      padding:
+        calc(1rem + var(--safe-top))
+        calc(1rem + var(--safe-right))
+        calc(1rem + var(--safe-bottom))
+        calc(1rem + var(--safe-left));
+      /* Dark + blur so the preloading panorama is only faintly visible */
+      background: rgba(18, 14, 12, 0.78);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+
+    /* Hidden after Start — panorama becomes interactive */
+    #gate-layer.is-hidden {
+      opacity: 0;
+      visibility: hidden;
       pointer-events: none;
     }
 
     #gate-card {
-      width: min(90vw, 20rem);
+      width: min(90vw, 21rem);
       text-align: center;
       border: var(--border);
       background: var(--surface);
-      padding: 0.75rem 0.85rem;
-      opacity: 0.88;
+      padding: 1.5rem 1.15rem 1.25rem;
     }
 
-    #gate-card h1 {
-      margin: 0.3rem 0 0.4rem;
-      font-size: 0.95rem;
-      font-weight: 600;
-    }
-
-    #gate-card .hint {
+    #gate-brand {
       margin: 0;
-      font-size: 0.75rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      line-height: 1.35;
+    }
+
+    #gate-sub {
+      margin: 0.65rem 0 1.25rem;
+      font-size: 0.8rem;
+      line-height: 1.4;
       color: var(--text-muted);
     }
 
     #start-btn {
-      display: none; /* real Start flow returns in Step 4 */
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      width: 100%;
+      border: none;
+      background: #f5f0e8;
+      color: #1a1612;
+      font: inherit;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 0.85rem 1rem;
+      cursor: pointer;
+      transition: opacity 0.2s ease, transform 0.15s ease;
     }
 
-    /* Step 3: hide modal preview so it does not cover the panorama */
+    #start-btn:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+
+    #start-btn:not(:disabled):active {
+      transform: scale(0.98);
+    }
+
+    /* Tiny spinner inside the button while the 360 asset buffers */
+    #start-btn .spinner {
+      display: none;
+    }
+
+    #start-btn.is-loading .spinner {
+      display: inline-block;
+    }
+
     #modal-layer {
       display: none;
     }
 
-    /* Temporary Step 3 verification banner */
-    #step3-banner {
+    /* Temporary Step 4 check banner (on top of gate) */
+    #step4-banner {
       position: absolute;
       z-index: var(--z-banner);
       left: 50%;
@@ -288,31 +327,36 @@
       line-height: 1.35;
       color: var(--text-muted);
       pointer-events: none;
+      transition: opacity 0.35s ease;
     }
 
-    #step3-banner strong {
+    #step4-banner strong {
       color: var(--text);
+    }
+
+    body.has-started #step4-banner {
+      opacity: 0;
     }
   </style>
 </head>
 <body>
   <div id="app">
-    <div id="step3-banner" role="status">
-      <strong>Step 3 check:</strong>
-      Wait for the spinner to finish, then drag/swipe the 360 view.
-      Placeholder image is OK — we will swap the real Checkpoint Charlie asset later.
+    <div id="step4-banner" role="status">
+      <strong>Step 4 check:</strong>
+      Gate should block the view. Wait until the button is ready, press
+      “Start Time Travel”, then you should be able to drag the 360 view.
     </div>
 
-    <!-- z0: Pannellum mounts inside this empty container -->
+    <!-- z0: panorama preloads under the gate -->
     <div id="panorama" role="img" aria-label="360 degree panorama viewer"></div>
 
-    <!-- z5: shown while the panorama buffers -->
+    <!-- z5: background loader (also reflected on the Start button) -->
     <div id="loading-overlay" aria-live="polite">
       <div class="spinner" aria-hidden="true"></div>
       <p id="loading-text">Loading 360° view…</p>
     </div>
 
-    <!-- z10: persistent UI placeholders -->
+    <!-- z10: shown only after Start -->
     <div id="ui-layer" aria-hidden="true">
       <div id="watermark" class="placeholder-box">
         TimePortal // Checkpoint Charlie
@@ -326,58 +370,106 @@
       </div>
     </div>
 
-    <!-- z20: non-blocking reminder only (real gate returns in Step 4) -->
-    <div id="gate-layer" aria-hidden="true">
+    <!-- z20: blocking onboarding gate -->
+    <div
+      id="gate-layer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="gate-brand"
+    >
       <div id="gate-card">
-        <div class="layer-label">z20 · gate (preview)</div>
-        <h1>TimePortal // Checkpoint Charlie</h1>
-        <p class="hint">Gate is non-blocking in Step 3 so you can test the panorama.</p>
-        <button id="start-btn" type="button" disabled>Start Time Travel</button>
+        <p id="gate-brand">TimePortal // Checkpoint Charlie</p>
+        <p id="gate-sub">
+          Preparing your 360° historical view. Tap Start when ready.
+        </p>
+        <button id="start-btn" type="button" disabled class="is-loading">
+          <span class="spinner spinner-sm" aria-hidden="true"></span>
+          <span id="start-btn-label">Loading…</span>
+        </button>
       </div>
     </div>
 
-    <!-- z30 hidden until later steps -->
     <div id="modal-layer" hidden></div>
   </div>
 
   <script>
     (function () {
       /**
-       * PLACEHOLDER panorama (local copy for reliable smoke tests).
-       * When you have the real Checkpoint Charlie file, replace the file in /assets
-       * or change only this line to your new URL/path.
+       * PLACEHOLDER panorama path.
+       * Swap this (or replace the file) when the real Checkpoint Charlie asset is ready.
        */
       var PANORAMA_URL = "assets/placeholder-panorama.jpg";
 
       var loadingOverlay = document.getElementById("loading-overlay");
       var loadingText = document.getElementById("loading-text");
-      var viewer = null;
+      var gateLayer = document.getElementById("gate-layer");
+      var startBtn = document.getElementById("start-btn");
+      var startBtnLabel = document.getElementById("start-btn-label");
+      var uiLayer = document.getElementById("ui-layer");
 
-      // Small helper: hide the spinner after a successful load
+      var viewer = null;
+      var panoramaReady = false;
+      var hasStarted = false;
+
       function hideLoader() {
         loadingOverlay.classList.remove("is-error");
         loadingOverlay.classList.add("is-hidden");
         loadingText.textContent = "Loading 360° view…";
       }
 
-      // Small helper: show a clear error if the image cannot load
       function showLoaderError(message) {
         loadingOverlay.classList.remove("is-hidden");
         loadingOverlay.classList.add("is-error");
         loadingText.textContent = message;
+        // Keep Start disabled if the panorama failed
+        startBtn.disabled = true;
+        startBtn.classList.remove("is-loading");
+        startBtnLabel.textContent = "Unavailable";
       }
 
-      // Guard: Pannellum script must be present
+      // Enable the Start button once the 360 image is ready
+      function markPanoramaReady() {
+        panoramaReady = true;
+        hideLoader();
+        startBtn.disabled = false;
+        startBtn.classList.remove("is-loading");
+        startBtnLabel.textContent = "Start Time Travel";
+        console.log("[TimePortal Step 4] Panorama ready — Start enabled.");
+      }
+
+      /**
+       * Step 4 behavior only:
+       * Hide the gate and reveal the UI.
+       * Step 5 will add DeviceOrientation permission here.
+       */
+      function startExperience() {
+        if (hasStarted || !panoramaReady) {
+          return;
+        }
+
+        hasStarted = true;
+        document.body.classList.add("has-started");
+        gateLayer.classList.add("is-hidden");
+        gateLayer.setAttribute("aria-hidden", "true");
+        uiLayer.setAttribute("aria-hidden", "false");
+
+        console.log("[TimePortal Step 4] Gate dismissed (no permission request yet).");
+      }
+
+      startBtn.addEventListener("click", function () {
+        startExperience();
+      });
+
       if (typeof pannellum === "undefined") {
         showLoaderError("Pannellum failed to load. Check your network and refresh.");
-        console.error("[TimePortal Step 3] pannellum global is missing.");
+        console.error("[TimePortal Step 4] pannellum global is missing.");
         return;
       }
 
-      console.log("[TimePortal Step 3] Initializing viewer with", PANORAMA_URL);
+      console.log("[TimePortal Step 4] Preloading panorama under gate:", PANORAMA_URL);
 
       try {
-        // Create the 360 viewer. autoLoad starts downloading immediately.
+        // Preload while the gate is visible (do not wait for Start to download)
         viewer = pannellum.viewer("panorama", {
           type: "equirectangular",
           panorama: PANORAMA_URL,
@@ -386,39 +478,38 @@
           showFullscreenCtrl: false,
           mouseZoom: true,
           draggable: true,
-          // Comfortable mobile starting field of view
           hfov: 100,
-          // Friction feels a bit more natural on touch devices
           friction: 0.15,
-          // Keep compass off until we wire orientation in a later step
           compass: false,
           orientationOnByDefault: false
         });
 
-        // When the panorama finishes rendering, remove the spinner
         viewer.on("load", function () {
-          console.log("[TimePortal Step 3] Panorama loaded successfully.");
-          hideLoader();
+          markPanoramaReady();
         });
 
-        // Pannellum fires "error" with a message string in many versions
         viewer.on("error", function (errMsg) {
-          console.error("[TimePortal Step 3] Panorama error:", errMsg);
+          console.error("[TimePortal Step 4] Panorama error:", errMsg);
           showLoaderError(
-            "Could not load the 360 image. Check the URL or your network, then refresh."
+            "Could not load the 360 image. Check the asset path or your network, then refresh."
           );
         });
       } catch (err) {
-        console.error("[TimePortal Step 3] Viewer init failed:", err);
+        console.error("[TimePortal Step 4] Viewer init failed:", err);
         showLoaderError("Could not start the 360 viewer. See console for details.");
       }
 
-      // Expose for quick console debugging during smoke tests
       window.TimePortal = {
-        step: 3,
+        step: 4,
         panoramaUrl: PANORAMA_URL,
         getViewer: function () {
           return viewer;
+        },
+        isReady: function () {
+          return panoramaReady;
+        },
+        hasStarted: function () {
+          return hasStarted;
         }
       };
     })();

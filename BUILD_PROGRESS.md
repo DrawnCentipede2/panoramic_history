@@ -14,7 +14,7 @@ Last updated: 2026-07-19
 | 1 | Project scaffold + full-screen HTML shell | ✅ Done |
 | 2 | Dark theme CSS + z-index overlay layers | ✅ Done |
 | 3 | Pannellum + loading spinner + test panorama | ✅ Done |
-| 4 | Onboarding gate UI (no permission yet) | ⏳ Pending |
+| 4 | Onboarding gate UI (no permission yet) | ⏸️ Waiting on user cross-check |
 | 5 | Device orientation permission + touch fallback | ⏳ Pending |
 | 6 | Auto-rotate affordance + kill on input | ⏳ Pending |
 | 7 | Persistent overlays (watermark, safety, minimap) | ⏳ Pending |
@@ -158,11 +158,27 @@ Wire pinned Pannellum 2.5.7, show a loading spinner, render a local placeholder 
 
 ---
 
-## Later steps (stubs — fill in when we reach them)
+## Step 4 — Onboarding gate UI
 
-### Step 4 — Onboarding gate UI
-- Status: ⏳ Pending  
-- Verification: _TBD_
+### Goal
+Restore a full-screen blocking blurred gate with brand + “Start Time Travel”.
+Panorama preloads underneath. Start only dismisses the gate (no gyro permission yet).
+
+### How to verify
+1. Hard-refresh: `http://127.0.0.1:8765/index.html`
+2. First screen is a dark blurred gate with brand + button (button may say Loading… briefly)
+3. You should NOT be able to drag the panorama until Start is pressed
+4. After Start: gate fades away, you can drag/swipe the 360 view
+5. Overlay placeholders become visible after Start
+
+### Verification result
+- Agent self-check: ✅ `python scripts/verify_step4.py` → `ALL_OK`
+- User cross-check: ⏸️ Waiting
+- Marked complete: ❌ Not yet
+
+---
+
+## Later steps (stubs — fill in when we reach them)
 
 ### Step 5 — Orientation permission flow
 - Status: ⏳ Pending  
