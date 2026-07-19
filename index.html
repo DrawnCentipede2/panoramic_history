@@ -11,6 +11,10 @@
     name="viewport"
     content="width=device-width, initial-scale=1.0, viewport-fit=cover"
   />
+  <!-- Helps when the user later "Adds to Home screen" for a more app-like view -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#1a1612" />
   <title>TimePortal // Checkpoint Charlie</title>
 
@@ -187,19 +191,55 @@
       pointer-events: auto;
     }
 
-    #watermark {
+    /*
+      Top bar: brand + safety share one row with a gap.
+      This prevents the portrait overlap seen on narrow Android phones.
+    */
+    #top-bar {
       position: absolute;
-      top: calc(0.75rem + var(--safe-top));
-      left: calc(0.75rem + var(--safe-left));
+      top: calc(0.65rem + var(--safe-top));
+      left: calc(0.65rem + var(--safe-left));
+      right: calc(0.65rem + var(--safe-right));
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    #watermark,
+    #safety-alert {
+      position: static;
+      flex: 1 1 0;
+      min-width: 0; /* allow text to wrap instead of overflowing */
+      max-width: calc(50% - 0.25rem);
+      font-size: 0.68rem;
+      line-height: 1.25;
+      padding: 0.35rem 0.45rem;
+    }
+
+    #watermark {
+      text-align: left;
     }
 
     #safety-alert {
-      position: absolute;
-      top: calc(0.75rem + var(--safe-top));
-      right: calc(0.75rem + var(--safe-right));
-      max-width: 11rem;
       text-align: right;
       color: var(--danger);
+    }
+
+    /* Very narrow portrait: stack so nothing can collide */
+    @media (max-width: 380px) {
+      #top-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.35rem;
+      }
+
+      #watermark,
+      #safety-alert {
+        max-width: 100%;
+        text-align: left;
+      }
     }
 
     #minimap {
@@ -364,9 +404,9 @@
 <body>
   <div id="app">
     <div id="step5-banner" role="status">
-      <strong>Step 5 check:</strong>
-      Press Start. On iPhone you may see a motion permission prompt.
-      Gyro OR drag should both work; desktop will use drag.
+      <strong>Step 5 fix check:</strong>
+      Top labels should not overlap. After Start, Android may enter fullscreen
+      (hides the browser bar). Drag/tilt should still work.
     </div>
 
     <!-- z0: panorama preloads under the gate -->
@@ -380,11 +420,14 @@
 
     <!-- z10: shown only after Start -->
     <div id="ui-layer" aria-hidden="true">
-      <div id="watermark" class="placeholder-box">
-        TimePortal // Checkpoint Charlie
-      </div>
-      <div id="safety-alert" class="placeholder-box">
-        Watch for traffic &amp; pedestrians
+      <!-- Shared top row so brand + safety cannot overlap on narrow phones -->
+      <div id="top-bar">
+        <div id="watermark" class="placeholder-box">
+          TimePortal // Checkpoint Charlie
+        </div>
+        <div id="safety-alert" class="placeholder-box">
+          Watch for traffic &amp; pedestrians
+        </div>
       </div>
       <div id="minimap" class="placeholder-box">Minimap placeholder</div>
       <div id="unlock-cta" class="placeholder-box interactive">
@@ -467,6 +510,47 @@
         gateLayer.classList.add("is-hidden");
         gateLayer.setAttribute("aria-hidden", "true");
         uiLayer.setAttribute("aria-hidden", "false");
+      }
+
+      // Tell Pannellum the screen size changed (rotate / fullscreen)
+      function resizeViewer() {
+        if (viewer && typeof viewer.resize === "function") {
+          viewer.resize();
+        }
+      }
+
+      /**
+       * Ask the browser for fullscreen after Start (user gesture required).
+       * On Android Chrome this usually hides the address bar.
+       * iOS Safari support is limited — drag/tilt still work either way.
+       */
+      function tryEnterFullscreen() {
+        var el = document.documentElement;
+        var request =
+          el.requestFullscreen ||
+          el.webkitRequestFullscreen ||
+          el.webkitRequestFullScreen;
+
+        if (!request) {
+          return Promise.resolve(false);
+        }
+
+        try {
+          var result = request.call(el);
+          // Some browsers return a Promise; older ones do not
+          if (result && typeof result.then === "function") {
+            return result.then(function () {
+              return true;
+            }).catch(function (err) {
+              console.warn("[TimePortal Step 5] Fullscreen blocked:", err);
+              return false;
+            });
+          }
+          return Promise.resolve(true);
+        } catch (err) {
+          console.warn("[TimePortal Step 5] Fullscreen error:", err);
+          return Promise.resolve(false);
+        }
       }
 
       function showControlHint(state) {
@@ -566,13 +650,26 @@
           dismissGate();
           showControlHint(permissionState);
 
-          console.log("[TimePortal Step 5] Started.", {
-            permissionState: permissionState,
-            gyroEnabled: gyroEnabled,
-            isSecureContext: window.isSecureContext
+          // Try to hide browser chrome (best effort on Android Chrome)
+          tryEnterFullscreen().then(function (fullscreenOk) {
+            resizeViewer();
+            console.log("[TimePortal Step 5] Started.", {
+              permissionState: permissionState,
+              gyroEnabled: gyroEnabled,
+              fullscreenOk: fullscreenOk,
+              isSecureContext: window.isSecureContext
+            });
           });
         });
       }
+
+      // Keep the 360 canvas matched to the visible area
+      window.addEventListener("resize", resizeViewer);
+      window.addEventListener("orientationchange", function () {
+        window.setTimeout(resizeViewer, 250);
+      });
+      document.addEventListener("fullscreenchange", resizeViewer);
+      document.addEventListener("webkitfullscreenchange", resizeViewer);
 
       startBtn.addEventListener("click", function () {
         startExperience();

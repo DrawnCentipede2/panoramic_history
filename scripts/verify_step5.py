@@ -12,9 +12,12 @@ checks = {
     "has_control_hint": 'id="control-hint"' in html,
     "has_fallback_hint": "Drag with your finger to look around." in html,
     "has_gyro_hint": "Move your phone to look around" in html,
-    "has_step5_banner": "Step 5 check" in html,
+    "has_step5_banner": "Step 5 fix check" in html,
     "orientation_off_by_default": "orientationOnByDefault: false" in html,
     "has_secure_context_check": "isSecureContext" in html,
+    "has_top_bar": 'id="top-bar"' in html,
+    "has_fullscreen_helper": "tryEnterFullscreen" in html,
+    "has_viewer_resize": "viewer.resize" in html,
 }
 
 for name, ok in checks.items():

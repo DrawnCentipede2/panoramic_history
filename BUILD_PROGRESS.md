@@ -202,9 +202,14 @@ otherwise keep touch-drag. Always dismiss the gate.
 ### Known caveat
 iOS often requires HTTPS for motion permission. Plain HTTP on LAN may fall back to drag — that is still an acceptable Step 5 pass for the deny/unsupported path. If gyro is required on iOS, we may add an HTTPS tunnel later.
 
+### Hotfix (from Samsung S25 feedback)
+1. **Overlap:** Brand + safety now share a flex `#top-bar` (stack under 380px width).
+2. **Browser chrome:** On Start we call the Fullscreen API (works well on Android Chrome). We cannot force-hide the URL bar without fullscreen or “Add to Home screen”.
+3. Viewer `resize()` on rotate/fullscreen so the panorama refills the screen.
+
 ### Verification result
-- Agent self-check: pending
-- User cross-check: ⏸️ Waiting
+- Agent self-check: structural HTML updated
+- User cross-check: ⏸️ Waiting (re-test on S25 after hotfix)
 - Marked complete: ❌ Not yet
 
 ---
