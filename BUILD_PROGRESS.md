@@ -13,7 +13,7 @@ Last updated: 2026-07-19
 |------|------|--------|
 | 1 | Project scaffold + full-screen HTML shell | ✅ Done |
 | 2 | Dark theme CSS + z-index overlay layers | ✅ Done |
-| 3 | Pannellum + loading spinner + test panorama | ⏳ Pending (placeholder image OK) |
+| 3 | Pannellum + loading spinner + test panorama | ⏸️ Waiting on user cross-check |
 | 4 | Onboarding gate UI (no permission yet) | ⏳ Pending |
 | 5 | Device orientation permission + touch fallback | ⏳ Pending |
 | 6 | Auto-rotate affordance + kill on input | ⏳ Pending |
@@ -127,9 +127,36 @@ Add CSS theme tokens and four stacked overlay layers with labeled placeholders:
 ## Later steps (stubs — fill in when we reach them)
 
 ### Step 3 — Pannellum + spinner + panorama
-- Status: ⏳ Pending  
-- Will use placeholder equirectangular image until real asset arrives  
-- Verification: _TBD_
+
+### Goal
+Wire pinned Pannellum 2.5.7, show a loading spinner, render a local placeholder 360 image, and allow touch/mouse drag.
+
+### Files
+- `index.html` — viewer init + spinner
+- `assets/placeholder-panorama.jpg` — temporary equirectangular image (~1.6 MB)
+- `scripts/verify_step3.py`
+
+### What this step intentionally does NOT include
+- Real Checkpoint Charlie image
+- Gyro permission / Start button behavior
+- Auto-rotate kill logic
+- Real unlock modal / telemetry
+
+### How to verify
+1. Hard-refresh: `http://127.0.0.1:8765/index.html`
+2. Spinner appears briefly, then disappears
+3. You see a real 360 photo (not a solid color)
+4. Drag / swipe to look around
+5. Page still does not scroll
+
+### Verification result
+- Agent self-check: ✅ `python scripts/verify_step3.py` → `ALL_OK`; local placeholder saved
+- User cross-check: ⏸️ Waiting
+- Marked complete: ❌ Not yet
+
+### Notes
+- Warm archival brown tokens lightly applied (`#1a1612`); full palette polish later.
+- Gate is non-blocking in Step 3 so panorama drag can be tested.
 
 ### Step 4 — Onboarding gate UI
 - Status: ⏳ Pending  
