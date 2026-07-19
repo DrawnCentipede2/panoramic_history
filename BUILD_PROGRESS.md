@@ -262,16 +262,17 @@ Polish the persistent UI overlays:
 - Prefer a **small semi-transparent FAB** over a giant bottom bar
 - FAB is **dismissible with X** for the whole browser session (`sessionStorage`)
 - FAB click opens a **lightweight email modal** (“under reconstruction / notify at launch”)
+- FAB appears after **~10s visible time** after Start — tilt/pan not required
 
 ### Goal
-1. After 10s of real pan/tilt, fade in the FAB
+1. After ~10s visible in the experience, fade in the FAB
 2. X hides FAB for the rest of the tab session
 3. FAB opens email modal with validation + success state
 
 ### How to verify
-1. Hard-refresh → Start → pan ~10s → small FAB appears
+1. Hard-refresh → Start → wait ~10s (no tilt needed) → small FAB appears
 2. Tap **X** → FAB gone; refresh same tab → still gone
-3. (New tab / clear session) pan again → FAB returns → tap chip → modal opens
+3. (New tab / clear session) wait again → FAB returns → tap chip → modal opens
 4. Invalid email → error; valid email → success message
 5. Escape / backdrop / modal X closes modal
 
