@@ -18,12 +18,13 @@
   <meta name="theme-color" content="#1a1612" />
   <title>TimePortal // Checkpoint Charlie</title>
 
-  <!-- Pinned Pannellum 2.5.7 -->
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.css"
-  />
-  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.7/build/pannellum.js"></script>
+  <!--
+    Pannellum is vendored locally (not loaded from a CDN).
+    That avoids browser Tracking Prevention warnings on third-party storage
+    and keeps the smoke test working offline / on strict privacy browsers.
+  -->
+  <link rel="stylesheet" href="assets/vendor/pannellum/pannellum.css" />
+  <script src="assets/vendor/pannellum/pannellum.js"></script>
 
   <style>
     /* Warm archival charcoal theme (refine later) */
