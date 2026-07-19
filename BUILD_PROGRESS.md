@@ -17,8 +17,8 @@ Last updated: 2026-07-19
 | 4 | Onboarding gate UI (no permission yet) | ✅ Done |
 | 5 | Device orientation permission + touch fallback | ✅ Done |
 | 6 | Auto-rotate affordance + kill on input | ✅ Done |
-| 7 | Persistent overlays (watermark, SVG minimap) | ⏸️ Waiting on user cross-check |
-| 8 | 10s interaction timer + unlock CTA | ⏳ Pending |
+| 7 | Persistent overlays (watermark, SVG minimap) | ✅ Done |
+| 8 | 10s interaction timer + unlock CTA | ⏸️ Waiting on user cross-check |
 | 9 | Lead-gen modal + email validation | ⏳ Pending |
 | 10 | Telemetry + subscribe fetch stubs | ⏳ Pending |
 | 11 | Final smoke-test on real phone | ⏳ Pending |
@@ -251,14 +251,33 @@ Polish the persistent UI overlays:
 4. Unlock button still hidden (comes in Step 8)
 
 ### Verification result
+- User cross-check: ✅ Pass (2026-07-19)
+- Marked complete: ✅ Yes
+
+---
+
+## Step 8 — 10s interaction timer + unlock CTA
+
+### Goal
+Accumulate 10 seconds of real interaction (touch-pan / meaningful gyro).
+Ignore auto-rotate and hidden-tab time. Then fade in
+“Unlock 1961 Tank Crisis Era” at bottom-center.
+Modal opens in Step 9 — Step 8 only shows the button.
+
+### How to verify
+1. Hard-refresh → Start
+2. Keep dragging / tilting for about 10 seconds total (not just waiting)
+3. Unlock button fades in at bottom-center
+4. Standing still / only watching auto-rotate should NOT unlock it
+5. Click logs to console for now (modal = Step 9)
+
+Debug on desktop: after Start, in console run `TimePortal.getInteractionMs()` while panning.
+
+### Verification result
 - Status: ⏸️ Waiting on user
 - Marked complete: ❌ Not yet
 
 ---
-
-### Step 8 — Interaction timer + unlock CTA
-- Status: ⏳ Pending  
-- Verification: _TBD_
 
 ### Step 9 — Lead-gen modal
 - Status: ⏳ Pending  
