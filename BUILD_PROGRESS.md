@@ -18,9 +18,9 @@ Last updated: 2026-07-19
 | 5 | Device orientation permission + touch fallback | ✅ Done |
 | 6 | Auto-rotate affordance + kill on input | ✅ Done |
 | 7 | Persistent overlays (watermark, SVG minimap) | ✅ Done |
-| 8 | 10s interaction timer + dismissible unlock FAB | ⏸️ Waiting on user cross-check |
-| 9 | Lead-gen email modal (from FAB) | ⏸️ Waiting on user cross-check |
-| 10 | Telemetry + subscribe fetch stubs | ⏳ Pending |
+| 8 | 10s interaction timer + dismissible unlock FAB | ✅ Done |
+| 9 | Lead-gen email modal (from FAB) | ✅ Done |
+| 10 | Telemetry + subscribe fetch stubs | 🔄 In progress |
 | 11 | Final smoke-test on real phone | ⏳ Pending |
 
 Status legend: ⏳ Pending · 🔄 In progress · ✅ Done · ❌ Blocked · ⏸️ Waiting on user
@@ -277,15 +277,24 @@ Polish the persistent UI overlays:
 5. Escape / backdrop / modal X closes modal
 
 ### Verification result
-- Status: ⏸️ Waiting on user
-- Marked complete: ❌ Not yet
+- User cross-check: ✅ Pass (2026-07-19) — Steps 8–9 OK
+- Marked complete: ✅ Yes
 
 ---
 
-### Step 10 — Telemetry + FastAPI mock
-- Status: ⏳ Pending  
-- Plan: resilient frontend stubs + tiny local FastAPI mock  
-- Verification: _TBD_
+## Step 10 — Telemetry + FastAPI mock
+
+### Goal
+Add session UUID + resilient fetch stubs for:
+- POST `/api/v1/telemetry` (page_loaded, unlock_shown, unlock_clicked)
+- POST `/api/v1/subscribe` (email)
+Plus a tiny local FastAPI mock so Network tab can show real `200`s.
+
+### Verification result
+- Status: 🔄 In progress
+- User cross-check: ⏸️ Waiting
+
+---
 
 ### Step 11 — Final smoke test
 - Status: ⏳ Pending  
