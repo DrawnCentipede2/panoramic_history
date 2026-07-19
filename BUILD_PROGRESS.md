@@ -15,7 +15,7 @@ Last updated: 2026-07-19
 | 2 | Dark theme CSS + z-index overlay layers | ✅ Done |
 | 3 | Pannellum + loading spinner + test panorama | ✅ Done |
 | 4 | Onboarding gate UI (no permission yet) | ✅ Done |
-| 5 | Device orientation permission + touch fallback | ⏳ Pending |
+| 5 | Device orientation permission + touch fallback | ⏸️ Waiting on user cross-check |
 | 6 | Auto-rotate affordance + kill on input | ⏳ Pending |
 | 7 | Persistent overlays (watermark, safety, minimap) | ⏳ Pending |
 | 8 | 10s interaction timer + unlock CTA | ⏳ Pending |
@@ -180,10 +180,34 @@ Panorama preloads underneath. Start only dismisses the gate (no gyro permission 
 
 ## Later steps (stubs — fill in when we reach them)
 
-### Step 5 — Orientation permission flow
-- Status: 🔄 In progress  
-- Phone testing method: same Wi‑Fi localhost  
-- Verification: _TBD_ (needs real iPhone/Android)
+## Step 5 — Orientation permission + touch fallback
+
+### Goal
+On Start: request DeviceOrientation (iOS), enable Pannellum gyro if granted,
+otherwise keep touch-drag. Always dismiss the gate.
+
+### How to verify
+
+**Desktop (fallback path):**
+1. Hard-refresh `http://127.0.0.1:8765/index.html`
+2. Start → gate goes away, hint says drag, drag still works
+3. In console: `TimePortal.getPermissionState()` is usually `granted` or `unsupported` (desktop has no real gyro)
+
+**Phone (same Wi‑Fi):**
+1. PC server must be running on port 8765
+2. On phone open: `http://192.168.0.135:8765/` (LAN IP may change)
+3. Start → iPhone may show motion permission
+4. If Allow: moving phone looks around; if Deny: drag still works
+
+### Known caveat
+iOS often requires HTTPS for motion permission. Plain HTTP on LAN may fall back to drag — that is still an acceptable Step 5 pass for the deny/unsupported path. If gyro is required on iOS, we may add an HTTPS tunnel later.
+
+### Verification result
+- Agent self-check: pending
+- User cross-check: ⏸️ Waiting
+- Marked complete: ❌ Not yet
+
+---
 
 ### Step 6 — Auto-rotate
 - Status: ⏳ Pending  

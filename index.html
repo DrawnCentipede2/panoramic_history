@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <!--
-    TimePortal // Checkpoint Charlie — Step 4: blocking onboarding gate.
-    Start button only hides the gate for now.
-    Device orientation permission is wired in Step 5.
+    TimePortal // Checkpoint Charlie — Step 5: orientation permission + touch fallback.
+    Start requests DeviceOrientation on iOS (when available), then reveals the viewer.
+    If denied/unsupported, touch-drag still works.
   -->
   <meta
     name="viewport"
@@ -221,6 +221,28 @@
       text-align: center;
     }
 
+    /* Short hint after Start: gyro vs drag */
+    #control-hint {
+      position: absolute;
+      left: 50%;
+      bottom: calc(4.6rem + var(--safe-bottom));
+      transform: translateX(-50%);
+      max-width: min(90vw, 20rem);
+      text-align: center;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      color: var(--text-muted);
+      border: var(--border);
+      background: var(--surface);
+      padding: 0.4rem 0.65rem;
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+
+    #control-hint.is-visible {
+      opacity: 1;
+    }
+
     /* ========== Layer 20: FULL blocking onboarding gate ========== */
     #gate-layer {
       position: absolute;
@@ -311,8 +333,8 @@
       display: none;
     }
 
-    /* Temporary Step 4 check banner (on top of gate) */
-    #step4-banner {
+    /* Temporary Step 5 check banner (on top of gate) */
+    #step5-banner {
       position: absolute;
       z-index: var(--z-banner);
       left: 50%;
@@ -330,21 +352,21 @@
       transition: opacity 0.35s ease;
     }
 
-    #step4-banner strong {
+    #step5-banner strong {
       color: var(--text);
     }
 
-    body.has-started #step4-banner {
+    body.has-started #step5-banner {
       opacity: 0;
     }
   </style>
 </head>
 <body>
   <div id="app">
-    <div id="step4-banner" role="status">
-      <strong>Step 4 check:</strong>
-      Gate should block the view. Wait until the button is ready, press
-      “Start Time Travel”, then you should be able to drag the 360 view.
+    <div id="step5-banner" role="status">
+      <strong>Step 5 check:</strong>
+      Press Start. On iPhone you may see a motion permission prompt.
+      Gyro OR drag should both work; desktop will use drag.
     </div>
 
     <!-- z0: panorama preloads under the gate -->
@@ -368,6 +390,7 @@
       <div id="unlock-cta" class="placeholder-box interactive">
         Unlock CTA placeholder
       </div>
+      <div id="control-hint" aria-live="polite"></div>
     </div>
 
     <!-- z20: blocking onboarding gate -->
@@ -380,7 +403,8 @@
       <div id="gate-card">
         <p id="gate-brand">TimePortal // Checkpoint Charlie</p>
         <p id="gate-sub">
-          Preparing your 360° historical view. Tap Start when ready.
+          Tap Start to enter the 360° view. On iPhone, allow motion access
+          if asked so you can look around by moving your phone.
         </p>
         <button id="start-btn" type="button" disabled class="is-loading">
           <span class="spinner spinner-sm" aria-hidden="true"></span>
@@ -406,10 +430,13 @@
       var startBtn = document.getElementById("start-btn");
       var startBtnLabel = document.getElementById("start-btn-label");
       var uiLayer = document.getElementById("ui-layer");
+      var controlHint = document.getElementById("control-hint");
 
       var viewer = null;
       var panoramaReady = false;
       var hasStarted = false;
+      // Track how orientation permission resolved for debugging / later telemetry
+      var permissionState = "unknown"; // granted | denied | unsupported | unknown
 
       function hideLoader() {
         loadingOverlay.classList.remove("is-error");
@@ -421,26 +448,99 @@
         loadingOverlay.classList.remove("is-hidden");
         loadingOverlay.classList.add("is-error");
         loadingText.textContent = message;
-        // Keep Start disabled if the panorama failed
         startBtn.disabled = true;
         startBtn.classList.remove("is-loading");
         startBtnLabel.textContent = "Unavailable";
       }
 
-      // Enable the Start button once the 360 image is ready
       function markPanoramaReady() {
         panoramaReady = true;
         hideLoader();
         startBtn.disabled = false;
         startBtn.classList.remove("is-loading");
         startBtnLabel.textContent = "Start Time Travel";
-        console.log("[TimePortal Step 4] Panorama ready — Start enabled.");
+        console.log("[TimePortal Step 5] Panorama ready — Start enabled.");
+      }
+
+      function dismissGate() {
+        document.body.classList.add("has-started");
+        gateLayer.classList.add("is-hidden");
+        gateLayer.setAttribute("aria-hidden", "true");
+        uiLayer.setAttribute("aria-hidden", "false");
+      }
+
+      function showControlHint(state) {
+        var message =
+          state === "granted"
+            ? "Move your phone to look around — or drag with your finger."
+            : "Drag with your finger to look around.";
+
+        controlHint.textContent = message;
+        controlHint.classList.add("is-visible");
+
+        // Auto-hide after a few seconds so it does not clutter the scene
+        window.setTimeout(function () {
+          controlHint.classList.remove("is-visible");
+        }, 4500);
       }
 
       /**
-       * Step 4 behavior only:
-       * Hide the gate and reveal the UI.
-       * Step 5 will add DeviceOrientation permission here.
+       * Ask for device orientation when the browser requires it (mainly iOS Safari).
+       * Must run inside a user gesture (button click).
+       */
+      function requestOrientationPermission() {
+        // iOS 13+: explicit permission API
+        if (
+          typeof DeviceOrientationEvent !== "undefined" &&
+          typeof DeviceOrientationEvent.requestPermission === "function"
+        ) {
+          // iOS usually needs a secure context (HTTPS or localhost)
+          if (window.isSecureContext === false) {
+            console.warn(
+              "[TimePortal Step 5] Insecure context — iOS may block orientation."
+            );
+          }
+
+          return DeviceOrientationEvent.requestPermission()
+            .then(function (result) {
+              return result === "granted" ? "granted" : "denied";
+            })
+            .catch(function (err) {
+              console.warn("[TimePortal Step 5] requestPermission failed:", err);
+              return "denied";
+            });
+        }
+
+        // Most Android Chrome builds: no prompt API; orientation events may still work
+        if (typeof DeviceOrientationEvent !== "undefined") {
+          return Promise.resolve("granted");
+        }
+
+        // Desktop / unsupported browsers
+        return Promise.resolve("unsupported");
+      }
+
+      // Turn on Pannellum's device-orientation controls when possible
+      function tryEnableGyro() {
+        if (!viewer || typeof viewer.startOrientation !== "function") {
+          return false;
+        }
+
+        try {
+          viewer.startOrientation();
+          console.log("[TimePortal Step 5] startOrientation() called.");
+          return true;
+        } catch (err) {
+          console.warn("[TimePortal Step 5] startOrientation error:", err);
+          return false;
+        }
+      }
+
+      /**
+       * Start flow:
+       * 1) Request orientation permission (iOS)
+       * 2) Enable gyro if granted
+       * 3) Always dismiss gate — touch-drag remains available as fallback
        */
       function startExperience() {
         if (hasStarted || !panoramaReady) {
@@ -448,12 +548,30 @@
         }
 
         hasStarted = true;
-        document.body.classList.add("has-started");
-        gateLayer.classList.add("is-hidden");
-        gateLayer.setAttribute("aria-hidden", "true");
-        uiLayer.setAttribute("aria-hidden", "false");
+        startBtn.disabled = true;
+        startBtnLabel.textContent = "Starting…";
 
-        console.log("[TimePortal Step 4] Gate dismissed (no permission request yet).");
+        requestOrientationPermission().then(function (state) {
+          permissionState = state;
+          var gyroEnabled = false;
+
+          if (state === "granted") {
+            gyroEnabled = tryEnableGyro();
+            if (!gyroEnabled) {
+              // API said OK, but viewer could not start orientation
+              permissionState = "unsupported";
+            }
+          }
+
+          dismissGate();
+          showControlHint(permissionState);
+
+          console.log("[TimePortal Step 5] Started.", {
+            permissionState: permissionState,
+            gyroEnabled: gyroEnabled,
+            isSecureContext: window.isSecureContext
+          });
+        });
       }
 
       startBtn.addEventListener("click", function () {
@@ -462,14 +580,14 @@
 
       if (typeof pannellum === "undefined") {
         showLoaderError("Pannellum failed to load. Check your network and refresh.");
-        console.error("[TimePortal Step 4] pannellum global is missing.");
+        console.error("[TimePortal Step 5] pannellum global is missing.");
         return;
       }
 
-      console.log("[TimePortal Step 4] Preloading panorama under gate:", PANORAMA_URL);
+      console.log("[TimePortal Step 5] Preloading panorama under gate:", PANORAMA_URL);
 
       try {
-        // Preload while the gate is visible (do not wait for Start to download)
+        // Preload under the gate; orientation stays off until Start succeeds
         viewer = pannellum.viewer("panorama", {
           type: "equirectangular",
           panorama: PANORAMA_URL,
@@ -489,18 +607,18 @@
         });
 
         viewer.on("error", function (errMsg) {
-          console.error("[TimePortal Step 4] Panorama error:", errMsg);
+          console.error("[TimePortal Step 5] Panorama error:", errMsg);
           showLoaderError(
             "Could not load the 360 image. Check the asset path or your network, then refresh."
           );
         });
       } catch (err) {
-        console.error("[TimePortal Step 4] Viewer init failed:", err);
+        console.error("[TimePortal Step 5] Viewer init failed:", err);
         showLoaderError("Could not start the 360 viewer. See console for details.");
       }
 
       window.TimePortal = {
-        step: 4,
+        step: 5,
         panoramaUrl: PANORAMA_URL,
         getViewer: function () {
           return viewer;
@@ -510,6 +628,9 @@
         },
         hasStarted: function () {
           return hasStarted;
+        },
+        getPermissionState: function () {
+          return permissionState;
         }
       };
     })();
