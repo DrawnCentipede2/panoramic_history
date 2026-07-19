@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <!--
-    TimePortal // Checkpoint Charlie — Step 5: orientation permission + touch fallback.
-    Start requests DeviceOrientation on iOS (when available), then reveals the viewer.
-    If denied/unsupported, touch-drag still works.
+    TimePortal // Checkpoint Charlie — Step 6: auto-rotate affordance.
+    After Start, slow horizontal auto-rotate begins.
+    First intentional touch/drag or meaningful tilt kills it instantly.
   -->
   <meta
     name="viewport"
@@ -431,8 +431,8 @@
       display: none;
     }
 
-    /* Temporary Step 5 check banner (on top of gate) */
-    #step5-banner {
+    /* Temporary Step 6 check banner (on top of gate) */
+    #step6-banner {
       position: absolute;
       z-index: var(--z-banner);
       left: 50%;
@@ -450,20 +450,20 @@
       transition: opacity 0.35s ease;
     }
 
-    #step5-banner strong {
+    #step6-banner strong {
       color: var(--text);
     }
 
-    body.has-started #step5-banner {
+    body.has-started #step6-banner {
       opacity: 0;
     }
   </style>
 </head>
 <body>
   <div id="app">
-    <div id="step5-banner" role="status">
-      <strong>Step 5 UX check:</strong>
-      Tick the safety box, then Start. Use the top-right fullscreen icon to enter/exit.
+    <div id="step6-banner" role="status">
+      <strong>Step 6 check:</strong>
+      After Start, the view should slowly auto-rotate. Touch or tilt to stop it instantly.
     </div>
 
     <!-- z0: panorama preloads under the gate -->
@@ -573,6 +573,12 @@
       var hasStarted = false;
       // Track how orientation permission resolved for debugging / later telemetry
       var permissionState = "unknown"; // granted | denied | unsupported | unknown
+
+      // Step 6: slow spin to show the scene is interactive 360°
+      var AUTO_ROTATE_SPEED = -2; // degrees per second (negative = one direction)
+      var GYRO_KILL_THRESHOLD = 4; // degrees of tilt before we kill auto-rotate
+      var autoRotateActive = false;
+      var orientationBaseline = null; // first stable gyro sample after Start
 
       function hideLoader() {
         loadingOverlay.classList.remove("is-error");
@@ -747,6 +753,113 @@
         }, 4500);
       }
 
+      // Respect OS accessibility setting: no decorative motion
+      function prefersReducedMotion() {
+        return (
+          window.matchMedia &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        );
+      }
+
+      // Start the slow horizontal auto-rotate affordance
+      function startAutoRotateAffordance() {
+        if (!viewer || prefersReducedMotion()) {
+          console.log("[TimePortal Step 6] Auto-rotate skipped (reduced motion or no viewer).");
+          return;
+        }
+
+        autoRotateActive = true;
+
+        // Pannellum 2.5 exposes startAutoRotate(speed)
+        if (typeof viewer.startAutoRotate === "function") {
+          viewer.startAutoRotate(AUTO_ROTATE_SPEED);
+        } else if (typeof viewer.setAutoRotate === "function") {
+          viewer.setAutoRotate(AUTO_ROTATE_SPEED);
+        }
+
+        console.log("[TimePortal Step 6] Auto-rotate started at", AUTO_ROTATE_SPEED);
+      }
+
+      // Kill auto-rotate immediately (idempotent)
+      function stopAutoRotateAffordance(reason) {
+        if (!autoRotateActive) {
+          return;
+        }
+
+        autoRotateActive = false;
+
+        if (viewer && typeof viewer.stopAutoRotate === "function") {
+          viewer.stopAutoRotate();
+        } else if (viewer && typeof viewer.setAutoRotate === "function") {
+          viewer.setAutoRotate(0);
+        }
+
+        console.log("[TimePortal Step 6] Auto-rotate stopped:", reason || "user input");
+      }
+
+      // Absolute angle difference, handling wrap-around (e.g. 359 vs 1)
+      function angleDelta(a, b) {
+        if (a == null || b == null || isNaN(a) || isNaN(b)) {
+          return 0;
+        }
+        var diff = Math.abs(a - b) % 360;
+        return diff > 180 ? 360 - diff : diff;
+      }
+
+      /**
+       * Listen for intentional interaction that should kill auto-rotate:
+       * - touch / mouse / pointer on the panorama
+       * - meaningful device orientation change (not tiny sensor noise)
+       */
+      function bindAutoRotateKillListeners() {
+        var panoramaEl = document.getElementById("panorama");
+
+        function onPointerIntent() {
+          stopAutoRotateAffordance("pointer");
+        }
+
+        // Capture phase so we catch the gesture even if Pannellum handles it
+        panoramaEl.addEventListener("pointerdown", onPointerIntent, true);
+        panoramaEl.addEventListener("touchstart", onPointerIntent, { capture: true, passive: true });
+        panoramaEl.addEventListener("mousedown", onPointerIntent, true);
+        panoramaEl.addEventListener("wheel", onPointerIntent, { capture: true, passive: true });
+
+        // Wait briefly before using gyro as a kill signal (sensors often spike at start)
+        window.setTimeout(function () {
+          window.addEventListener(
+            "deviceorientation",
+            function onOrient(event) {
+              if (!autoRotateActive) {
+                return;
+              }
+
+              // First stable sample becomes the baseline
+              if (!orientationBaseline) {
+                orientationBaseline = {
+                  alpha: event.alpha,
+                  beta: event.beta,
+                  gamma: event.gamma
+                };
+                return;
+              }
+
+              var dAlpha = angleDelta(event.alpha, orientationBaseline.alpha);
+              var dBeta = angleDelta(event.beta, orientationBaseline.beta);
+              var dGamma = angleDelta(event.gamma, orientationBaseline.gamma);
+
+              if (
+                dAlpha >= GYRO_KILL_THRESHOLD ||
+                dBeta >= GYRO_KILL_THRESHOLD ||
+                dGamma >= GYRO_KILL_THRESHOLD
+              ) {
+                stopAutoRotateAffordance("gyro");
+              }
+            },
+            true
+          );
+        }, 600);
+      }
+
       /**
        * Ask for device orientation when the browser requires it (mainly iOS Safari).
        * Must run inside a user gesture (button click).
@@ -829,13 +942,18 @@
           dismissGate();
           showControlHint(permissionState);
 
+          // Step 6: begin slow spin, then listen for first real user input
+          startAutoRotateAffordance();
+          bindAutoRotateKillListeners();
+
           // Try to hide browser chrome (best effort on Android Chrome)
           tryEnterFullscreen().then(function (fullscreenOk) {
             syncFullscreenButton();
-            console.log("[TimePortal Step 5] Started.", {
+            console.log("[TimePortal Step 6] Started.", {
               permissionState: permissionState,
               gyroEnabled: gyroEnabled,
               fullscreenOk: fullscreenOk,
+              autoRotateActive: autoRotateActive,
               isSecureContext: window.isSecureContext
             });
           });
@@ -901,7 +1019,7 @@
       }
 
       window.TimePortal = {
-        step: 5,
+        step: 6,
         panoramaUrl: PANORAMA_URL,
         getViewer: function () {
           return viewer;
@@ -914,6 +1032,9 @@
         },
         getPermissionState: function () {
           return permissionState;
+        },
+        isAutoRotating: function () {
+          return autoRotateActive;
         }
       };
     })();

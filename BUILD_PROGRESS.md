@@ -16,7 +16,7 @@ Last updated: 2026-07-19
 | 3 | Pannellum + loading spinner + test panorama | ✅ Done |
 | 4 | Onboarding gate UI (no permission yet) | ✅ Done |
 | 5 | Device orientation permission + touch fallback | ✅ Done |
-| 6 | Auto-rotate affordance + kill on input | ⏳ Pending |
+| 6 | Auto-rotate affordance + kill on input | ⏸️ Waiting on user cross-check |
 | 7 | Persistent overlays (watermark, safety, minimap) | ⏳ Pending |
 | 8 | 10s interaction timer + unlock CTA | ⏳ Pending |
 | 9 | Lead-gen modal + email validation | ⏳ Pending |
@@ -219,18 +219,22 @@ iOS often requires HTTPS for motion permission. Plain HTTP on LAN may fall back 
 ## Step 6 — Auto-rotate affordance
 
 ### Goal
-After the panorama is shown, start a slow horizontal auto-rotate.
-Kill it instantly on first intentional touch/drag or meaningful gyro move.
-Respect `prefers-reduced-motion`.
+After Start, begin a slow horizontal auto-rotate to show the scene is 360°.
+Kill it instantly on first intentional touch/drag or meaningful phone tilt.
+Respect `prefers-reduced-motion` (no auto-rotate).
+
+### How to verify
+1. Hard-refresh and Start (tick safety)
+2. Scene should slowly rotate by itself
+3. Touch/drag OR tilt phone → rotation stops immediately
+4. With OS “reduce motion” on, no auto-rotate
 
 ### Verification result
 - Status: 🔄 In progress
 - User cross-check: ⏸️ Waiting
+- Marked complete: ❌ Not yet
 
 ---
-
-### Step 6b notes placeholder
-- n/a
 
 ### Step 7 — Persistent overlays
 - Status: ⏳ Pending  
