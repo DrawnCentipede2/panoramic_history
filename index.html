@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!--
+    TimePortal // Checkpoint Charlie — Step 2: theme + overlay layers.
+    Important later: iOS DeviceOrientation needs HTTPS or localhost (not file://).
+    Panorama image: temporary placeholder will be wired in Step 3.
+  -->
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
+  <meta name="theme-color" content="#121212" />
+  <title>TimePortal // Checkpoint Charlie</title>
+  <style>
+    /* ========== Theme tokens (easy to tweak later) ========== */
+    :root {
+      --bg: #121212;
+      --text: #ffffff;
+      --text-muted: rgba(255, 255, 255, 0.75);
+      --border: 1px solid rgba(255, 255, 255, 0.15);
+      --surface: rgba(18, 18, 18, 0.92);
+      --surface-soft: rgba(18, 18, 18, 0.72);
+      --danger: #ffb020;
+      --z-panorama: 0;
+      --z-ui: 10;
+      --z-gate: 20;
+      --z-modal: 30;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+    }
+
+    /* Reset: avoid accidental page scroll */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+    }
+
+    /* Full-screen app shell */
+    #app {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100vh; /* fallback */
+      height: 100dvh;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    /* Shared look for temporary Step 2 debug labels */
+    .layer-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border: var(--border);
+      background: var(--surface);
+      padding: 0.25rem 0.45rem;
+      border-radius: 2px;
+      pointer-events: none;
+    }
+
+    .placeholder-box {
+      border: var(--border);
+      background: var(--surface-soft);
+      color: var(--text);
+      font-size: 0.75rem;
+      line-height: 1.3;
+      padding: 0.45rem 0.6rem;
+    }
+
+    /* ========== Layer 0: panorama background ========== */
+    #panorama {
+      position: absolute;
+      inset: 0;
+      z-index: var(--z-panorama);
+      width: 100%;
+      height: 100%;
+      /* Temporary visual so we can see this layer under overlays */
+      background:
+        radial-gradient(circle at 30% 40%, #2a2a2a 0%, transparent 45%),
+        radial-gradient(circle at 70% 60%, #1c1c1c 0%, transparent 40%),
+        var(--bg);
+    }
+
+    #panorama .layer-label {
+      position: absolute;
+      left: 50%;
+      top: 42%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* ========== Layer 10: persistent UI overlays ========== */
+    #ui-layer {
+      position: absolute;
+      inset: 0;
+      z-index: var(--z-ui);
+      pointer-events: none; /* clicks pass through empty UI space */
+      padding:
+        calc(0.75rem + var(--safe-top))
+        calc(0.75rem + var(--safe-right))
+        calc(0.75rem + var(--safe-bottom))
+        calc(0.75rem + var(--safe-left));
+    }
+
+    /* Children that will become real buttons later can receive clicks */
+    #ui-layer .interactive {
+      pointer-events: auto;
+    }
+
+    #watermark {
+      position: absolute;
+      top: calc(0.75rem + var(--safe-top));
+      left: calc(0.75rem + var(--safe-left));
+    }
+
+    #safety-alert {
+      position: absolute;
+      top: calc(0.75rem + var(--safe-top));
+      right: calc(0.75rem + var(--safe-right));
+      max-width: 11rem;
+      text-align: right;
+      color: var(--danger);
+    }
+
+    #minimap {
+      position: absolute;
+      left: calc(0.75rem + var(--safe-left));
+      bottom: calc(5.5rem + var(--safe-bottom));
+      width: 7.5rem;
+      height: 5.5rem;
+      display: flex;
+      align-items: flex-end;
+    }
+
+    #unlock-cta {
+      position: absolute;
+      left: 50%;
+      bottom: calc(1.25rem + var(--safe-bottom));
+      transform: translateX(-50%);
+      min-width: 14rem;
+      text-align: center;
+    }
+
+    /* ========== Layer 20: onboarding gate ==========
+       Step 2 only: semi-transparent so we can SEE layers beneath.
+       Later steps will make this fully blocking until Start is pressed.
+    */
+    #gate-layer {
+      position: absolute;
+      inset: 0;
+      z-index: var(--z-gate);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      /* Temporary: 55% opacity so stacking is visible during Step 2 check */
+      background: rgba(18, 18, 18, 0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    #gate-card {
+      width: min(90vw, 20rem);
+      text-align: center;
+      border: var(--border);
+      background: var(--surface);
+      padding: 1.25rem 1rem;
+    }
+
+    #gate-card h1 {
+      margin: 0.35rem 0 0.75rem;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    #gate-card .hint {
+      margin: 0 0 1rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Not wired yet — visual placeholder only */
+    #start-btn {
+      appearance: none;
+      border: var(--border);
+      background: #ffffff;
+      color: #121212;
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.7rem 1rem;
+      width: 100%;
+      cursor: default;
+    }
+
+    /* ========== Layer 30: conversion modal ==========
+       Step 2 only: shown as a small preview so we can confirm it sits on top.
+       Later steps will hide it until the unlock CTA is used.
+    */
+    #modal-layer {
+      position: absolute;
+      inset: 0;
+      z-index: var(--z-modal);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0 1rem calc(1rem + var(--safe-bottom));
+      background: rgba(0, 0, 0, 0.35);
+      pointer-events: none; /* Step 2 preview only */
+    }
+
+    #modal-card {
+      width: min(92vw, 22rem);
+      border: var(--border);
+      background: var(--surface);
+      padding: 0.85rem 0.9rem;
+      pointer-events: none;
+    }
+
+    #modal-card p {
+      margin: 0.35rem 0 0;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    /* Temporary Step 2 verification banner */
+    #step2-banner {
+      position: absolute;
+      z-index: 40; /* above everything for this step only */
+      left: 50%;
+      top: calc(0.5rem + var(--safe-top));
+      transform: translateX(-50%);
+      width: min(94vw, 26rem);
+      text-align: center;
+      border: var(--border);
+      background: #1a1a1a;
+      padding: 0.45rem 0.6rem;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      color: var(--text-muted);
+    }
+
+    #step2-banner strong {
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Temporary banner: remove after Step 2 is approved -->
+    <div id="step2-banner" role="status">
+      <strong>Step 2 check:</strong>
+      You should see 4 stacked layers — panorama (back), UI chips,
+      semi-transparent gate, and modal preview on top. Page must not scroll.
+    </div>
+
+    <!-- z0: panorama (Pannellum arrives in Step 3) -->
+    <div id="panorama" aria-hidden="true">
+      <span class="layer-label">z0 · panorama</span>
+    </div>
+
+    <!-- z10: persistent UI overlays (real content in later steps) -->
+    <div id="ui-layer" aria-hidden="true">
+      <div id="watermark" class="placeholder-box">
+        TimePortal // Checkpoint Charlie
+        <div class="layer-label" style="margin-top: 0.35rem;">z10 · watermark</div>
+      </div>
+
+      <div id="safety-alert" class="placeholder-box">
+        Watch for traffic &amp; pedestrians
+        <div class="layer-label" style="margin-top: 0.35rem;">z10 · safety</div>
+      </div>
+
+      <div id="minimap" class="placeholder-box">
+        Minimap placeholder
+        <div class="layer-label" style="margin-top: 0.35rem;">z10 · minimap</div>
+      </div>
+
+      <div id="unlock-cta" class="placeholder-box interactive">
+        Unlock CTA placeholder
+        <div class="layer-label" style="margin-top: 0.35rem;">z10 · unlock</div>
+      </div>
+    </div>
+
+    <!-- z20: onboarding gate (behavior wired in Steps 4–5) -->
+    <div id="gate-layer" aria-hidden="true">
+      <div id="gate-card">
+        <div class="layer-label">z20 · gate</div>
+        <h1>TimePortal // Checkpoint Charlie</h1>
+        <p class="hint">Start button is visual only in Step 2.</p>
+        <button id="start-btn" type="button" disabled>Start Time Travel</button>
+      </div>
+    </div>
+
+    <!-- z30: modal preview (real form in Step 9) -->
+    <div id="modal-layer" aria-hidden="true">
+      <div id="modal-card">
+        <div class="layer-label">z30 · modal</div>
+        <p>
+          Modal preview only. This layer must sit above the gate.
+          Real email form comes in Step 9.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Step 2 runtime check: confirm layer order in the DOM / computed styles.
+    (function () {
+      var layers = [
+        { id: "panorama", expected: "0" },
+        { id: "ui-layer", expected: "10" },
+        { id: "gate-layer", expected: "20" },
+        { id: "modal-layer", expected: "30" }
+      ];
+
+      var report = layers.map(function (layer) {
+        var el = document.getElementById(layer.id);
+        var z = el ? window.getComputedStyle(el).zIndex : "missing";
+        return {
+          id: layer.id,
+          expected: layer.expected,
+          actual: z,
+          ok: String(z) === layer.expected
+        };
+      });
+
+      console.log("[TimePortal Step 2] layer z-index check", report);
+
+      var allOk = report.every(function (row) {
+        return row.ok;
+      });
+
+      if (allOk) {
+        console.log("[TimePortal Step 2] All overlay layers report correct z-index.");
+      } else {
+        console.warn("[TimePortal Step 2] One or more layers have wrong z-index.");
+      }
+
+      // Keep the no-scroll guard from Step 1.
+      if (document.body.scrollHeight > window.innerHeight + 1) {
+        console.warn("[TimePortal Step 2] Possible scroll risk detected.");
+      }
+    })();
+  </script>
+</body>
+</html>
