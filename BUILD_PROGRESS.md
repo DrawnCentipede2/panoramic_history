@@ -14,7 +14,7 @@ Last updated: 2026-07-19
 | 1 | Project scaffold + full-screen HTML shell | ✅ Done |
 | 2 | Dark theme CSS + z-index overlay layers | ✅ Done |
 | 3 | Pannellum + loading spinner + test panorama | ✅ Done |
-| 4 | Onboarding gate UI (no permission yet) | ⏸️ Waiting on user cross-check |
+| 4 | Onboarding gate UI (no permission yet) | ✅ Done |
 | 5 | Device orientation permission + touch fallback | ⏳ Pending |
 | 6 | Auto-rotate affordance + kill on input | ⏳ Pending |
 | 7 | Persistent overlays (watermark, safety, minimap) | ⏳ Pending |
@@ -173,15 +173,15 @@ Panorama preloads underneath. Start only dismisses the gate (no gyro permission 
 
 ### Verification result
 - Agent self-check: ✅ `python scripts/verify_step4.py` → `ALL_OK`
-- User cross-check: ⏸️ Waiting
-- Marked complete: ❌ Not yet
+- User cross-check: ✅ Pass (2026-07-19)
+- Marked complete: ✅ Yes
 
 ---
 
 ## Later steps (stubs — fill in when we reach them)
 
 ### Step 5 — Orientation permission flow
-- Status: ⏳ Pending  
+- Status: 🔄 In progress  
 - Phone testing method: same Wi‑Fi localhost  
 - Verification: _TBD_ (needs real iPhone/Android)
 
