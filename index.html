@@ -748,8 +748,8 @@
   <div id="app">
     <div id="step89-banner" role="status">
       <strong>Steps 8–9 check:</strong>
-      After ~10s of panning, a small FAB appears. X dismisses it for this session.
-      Tap the FAB to open the email waitlist modal.
+      After Start, wait ~10s (no tilt needed). A small FAB appears.
+      X dismisses it for this session. Tap the FAB to open the email waitlist.
     </div>
 
     <!-- z0: panorama preloads under the gate -->
@@ -957,17 +957,14 @@
       var autoRotateActive = false;
       var orientationBaseline = null; // first stable gyro sample after Start
 
-      // Step 8: cumulative active-interaction timer for the unlock FAB
-      var INTERACTION_GOAL_MS = 10000; // 10 seconds of real interaction
-      var GYRO_ACTIVE_THRESHOLD = 2.5; // smaller than kill threshold; counts as "looking around"
+      // Step 8: show FAB after ~10s of visible time in the experience
+      // (no tilt/pan required — idle waiting counts too)
+      var INTERACTION_GOAL_MS = 10000;
       var DISMISS_STORAGE_KEY = "timeportal_unlock_dismissed";
       var activeInteractionMs = 0;
-      var isPointerInteracting = false;
-      var gyroHoldUntil = 0;
       var interactionLastTick = null;
       var interactionRaf = null;
       var unlockShown = false; // true once FAB was revealed OR dismissed for session
-      var prevOrientSample = null;
       var lastFocusBeforeModal = null;
 
       // Was the FAB dismissed earlier in this browser tab session?
@@ -1267,18 +1264,6 @@
         }, 600);
       }
 
-      /**
-       * Step 8 helper: are we currently in an "active interaction" window?
-       * Counts touch-drag OR recent meaningful gyro movement.
-       * Does NOT count idle time or auto-rotate-only time.
-       */
-      function isActivelyInteracting(now) {
-        if (isPointerInteracting) {
-          return true;
-        }
-        return now < gyroHoldUntil;
-      }
-
       // Hide the FAB for the rest of this browser session
       function dismissUnlockFab() {
         unlockShown = true;
@@ -1306,7 +1291,7 @@
         console.log(
           "[TimePortal Step 8] Unlock FAB shown after",
           Math.round(activeInteractionMs),
-          "ms of interaction."
+          "ms visible."
         );
       }
 
@@ -1371,7 +1356,11 @@
           });
       }
 
-      // Animation-frame accumulator — pauses when tab is hidden or user is idle
+      /**
+       * Step 8 timer: count visible elapsed time after Start.
+       * Tilt/pan are NOT required — just being in the experience for ~10s is enough.
+       * Still pauses while the tab/app is in the background.
+       */
       function tickInteractionTimer(now) {
         interactionRaf = null;
 
@@ -1386,19 +1375,14 @@
           return;
         }
 
-        if (isActivelyInteracting(now)) {
-          if (interactionLastTick != null) {
-            activeInteractionMs += now - interactionLastTick;
-          }
-          interactionLastTick = now;
+        if (interactionLastTick != null) {
+          activeInteractionMs += now - interactionLastTick;
+        }
+        interactionLastTick = now;
 
-          if (activeInteractionMs >= INTERACTION_GOAL_MS) {
-            showUnlockCta();
-            return;
-          }
-        } else {
-          // Idle: do not add time
-          interactionLastTick = null;
+        if (activeInteractionMs >= INTERACTION_GOAL_MS) {
+          showUnlockCta();
+          return;
         }
 
         interactionRaf = requestAnimationFrame(tickInteractionTimer);
@@ -1419,94 +1403,14 @@
         }
         interactionLastTick = null;
         interactionRaf = requestAnimationFrame(tickInteractionTimer);
-        console.log("[TimePortal Step 8] Interaction timer started (goal 10s).");
+        console.log("[TimePortal Step 8] Visible-time timer started (goal 10s).");
       }
 
-      // Mark a short gyro "active" window when the phone is meaningfully moved
-      function noteGyroActivity() {
-        if (!hasStarted || unlockShown) {
-          return;
-        }
-        if (document.visibilityState !== "visible") {
-          return;
-        }
-        // While auto-rotate is still running, ignore tiny sensor noise for the timer
-        // (pointer kill / large tilt still handled by Step 6 separately)
-        gyroHoldUntil = performance.now() + 450;
-      }
-
-      /**
-       * Bind pan + gyro listeners that feed the 10s cumulative timer.
-       */
+      // If the tab is hidden, freeze the accumulator immediately
       function bindInteractionTimerListeners() {
-        var panoramaEl = document.getElementById("panorama");
-
-        function pointerOn() {
-          if (!hasStarted || unlockShown) {
-            return;
-          }
-          isPointerInteracting = true;
-        }
-
-        function pointerOff() {
-          isPointerInteracting = false;
-        }
-
-        panoramaEl.addEventListener("pointerdown", pointerOn, true);
-        panoramaEl.addEventListener("mousedown", pointerOn, true);
-        panoramaEl.addEventListener("touchstart", pointerOn, {
-          capture: true,
-          passive: true
-        });
-
-        window.addEventListener("pointerup", pointerOff, true);
-        window.addEventListener("mouseup", pointerOff, true);
-        window.addEventListener("touchend", pointerOff, true);
-        window.addEventListener("touchcancel", pointerOff, true);
-        window.addEventListener("blur", pointerOff);
-
-        // Count meaningful phone movement as active looking-around time
-        window.addEventListener(
-          "deviceorientation",
-          function (event) {
-            if (!hasStarted || unlockShown) {
-              return;
-            }
-            if (!prevOrientSample) {
-              prevOrientSample = {
-                alpha: event.alpha,
-                beta: event.beta,
-                gamma: event.gamma
-              };
-              return;
-            }
-
-            var dAlpha = angleDelta(event.alpha, prevOrientSample.alpha);
-            var dBeta = angleDelta(event.beta, prevOrientSample.beta);
-            var dGamma = angleDelta(event.gamma, prevOrientSample.gamma);
-
-            prevOrientSample = {
-              alpha: event.alpha,
-              beta: event.beta,
-              gamma: event.gamma
-            };
-
-            if (
-              dAlpha >= GYRO_ACTIVE_THRESHOLD ||
-              dBeta >= GYRO_ACTIVE_THRESHOLD ||
-              dGamma >= GYRO_ACTIVE_THRESHOLD
-            ) {
-              noteGyroActivity();
-            }
-          },
-          true
-        );
-
-        // If the tab is hidden, freeze the accumulator immediately
         document.addEventListener("visibilitychange", function () {
           if (document.visibilityState !== "visible") {
             interactionLastTick = null;
-            isPointerInteracting = false;
           }
         });
       }
