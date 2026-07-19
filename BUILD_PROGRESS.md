@@ -124,9 +124,7 @@ Add CSS theme tokens and four stacked overlay layers with labeled placeholders:
 
 ---
 
-## Later steps (stubs — fill in when we reach them)
-
-### Step 3 — Pannellum + spinner + panorama
+## Step 3 — Pannellum + spinner + panorama
 
 ### Goal
 Wire pinned Pannellum 2.5.7, show a loading spinner, render a local placeholder 360 image, and allow touch/mouse drag.
@@ -158,13 +156,17 @@ Wire pinned Pannellum 2.5.7, show a loading spinner, render a local placeholder 
 - Warm archival brown tokens lightly applied (`#1a1612`); full palette polish later.
 - Gate is non-blocking in Step 3 so panorama drag can be tested.
 
+---
+
+## Later steps (stubs — fill in when we reach them)
+
 ### Step 4 — Onboarding gate UI
 - Status: ⏳ Pending  
 - Verification: _TBD_
 
 ### Step 5 — Orientation permission flow
 - Status: ⏳ Pending  
-- Blocked until: HTTPS/localhost phone test method  
+- Phone testing method: same Wi‑Fi localhost  
 - Verification: _TBD_ (needs real iPhone/Android)
 
 ### Step 6 — Auto-rotate
@@ -183,8 +185,9 @@ Wire pinned Pannellum 2.5.7, show a loading spinner, render a local placeholder 
 - Status: ⏳ Pending  
 - Verification: _TBD_
 
-### Step 10 — Telemetry stubs
+### Step 10 — Telemetry + FastAPI mock
 - Status: ⏳ Pending  
+- Plan: resilient frontend stubs + tiny local FastAPI mock  
 - Verification: _TBD_
 
 ### Step 11 — Final smoke test
