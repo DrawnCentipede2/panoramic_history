@@ -20,7 +20,7 @@ Last updated: 2026-07-19
 | 7 | Persistent overlays (watermark, SVG minimap) | ✅ Done |
 | 8 | 10s interaction timer + dismissible unlock FAB | ✅ Done |
 | 9 | Lead-gen email modal (from FAB) | ✅ Done |
-| 10 | Telemetry + subscribe fetch stubs | 🔄 In progress |
+| 10 | Telemetry + subscribe fetch stubs | ⏸️ Waiting on user cross-check |
 | 11 | Final smoke-test on real phone | ⏳ Pending |
 
 Status legend: ⏳ Pending · 🔄 In progress · ✅ Done · ❌ Blocked · ⏸️ Waiting on user
@@ -286,13 +286,28 @@ Polish the persistent UI overlays:
 
 ### Goal
 Add session UUID + resilient fetch stubs for:
-- POST `/api/v1/telemetry` (page_loaded, unlock_shown, unlock_clicked)
-- POST `/api/v1/subscribe` (email)
+- POST `/api/v1/telemetry` (`page_loaded`, `unlock_shown`, `unlock_clicked`)
+- POST `/api/v1/subscribe` (email + sessionId)
 Plus a tiny local FastAPI mock so Network tab can show real `200`s.
 
+### How to run the mock (replaces plain `http.server`)
+```bash
+python -m pip install -r requirements.txt
+python -m uvicorn backend.main:app --host 0.0.0.0 --port 8765
+```
+Open: `http://127.0.0.1:8765/` or phone `http://192.168.0.135:8765/`
+
+### How to verify
+1. Load page → Network: `POST /api/v1/telemetry` (`page_loaded`) → 200
+2. Wait ~10s → FAB → telemetry `unlock_shown`
+3. Tap FAB → `unlock_clicked`
+4. Submit email → `POST /api/v1/subscribe` → 200 → success then auto-close
+5. Optional peek: `/api/v1/debug/recent`
+
 ### Verification result
-- Status: 🔄 In progress
+- Agent self-check: structure ✅; live mock health/telemetry/subscribe ✅
 - User cross-check: ⏸️ Waiting
+- Marked complete: ❌ Not yet
 
 ---
 
@@ -301,7 +316,6 @@ Plus a tiny local FastAPI mock so Network tab can show real `200`s.
 - Verification: real-device checklist from the build prompt
 
 ---
-
 ## Decision log
 | Date | Decision |
 |------|----------|

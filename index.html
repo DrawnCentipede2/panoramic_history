@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <!--
-    TimePortal // Checkpoint Charlie — Steps 8–9:
-    After ~10s of real interaction, show a small dismissible FAB.
-    FAB opens a lightweight email waitlist modal.
+    TimePortal // Checkpoint Charlie — Step 10: telemetry + subscribe API stubs.
+    Prefer running the FastAPI mock (serves this page + /api/* on one origin):
+      python -m uvicorn backend.main:app --host 0.0.0.0 --port 8765
   -->
   <meta
     name="viewport"
@@ -712,12 +712,21 @@
       display: none;
     }
 
+    /*
+      Hide the × after a successful signup.
+      Early close was clearing the auto-close timer, so the email modal
+      (or FAB) could stick around. Let the 1.6s timer finish both cleanups.
+    */
+    #modal-card.is-success #modal-close {
+      display: none;
+    }
+
     #modal-card.is-success #modal-success {
       display: block;
     }
 
-    /* Temporary Step 8–9 check banner (on top of gate) */
-    #step89-banner {
+    /* Temporary Step 10 check banner (on top of gate) */
+    #step10-banner {
       position: absolute;
       z-index: var(--z-banner);
       left: 50%;
@@ -735,21 +744,21 @@
       transition: opacity 0.35s ease;
     }
 
-    #step89-banner strong {
+    #step10-banner strong {
       color: var(--text);
     }
 
-    body.has-started #step89-banner {
+    body.has-started #step10-banner {
       opacity: 0;
     }
   </style>
 </head>
 <body>
   <div id="app">
-    <div id="step89-banner" role="status">
-      <strong>Steps 8–9 check:</strong>
-      After Start, wait ~10s (no tilt needed). A small FAB appears.
-      X dismisses it for this session. Tap the FAB to open the email waitlist.
+    <div id="step10-banner" role="status">
+      <strong>Step 10 check:</strong>
+      Run the FastAPI mock on port 8765. After load, Network should show
+      telemetry posts; FAB show/click + subscribe should return 200.
     </div>
 
     <!-- z0: panorama preloads under the gate -->
@@ -995,6 +1004,75 @@
         } catch (err) {
           // ignore storage failures
         }
+      }
+
+      /**
+       * Step 10: API helpers
+       * API_BASE empty = same origin (use the FastAPI mock that also serves this HTML).
+       * Override anytime with: window.TIMEPORTAL_API_BASE = "http://host:port"
+       */
+      var API_BASE = window.TIMEPORTAL_API_BASE || "";
+      var sessionId = createSessionId();
+
+      function createSessionId() {
+        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+          return window.crypto.randomUUID();
+        }
+        // Fallback for older browsers
+        return "sess-" + String(Date.now()) + "-" + Math.random().toString(16).slice(2);
+      }
+
+      /**
+       * Fire-and-forget telemetry. Never breaks the UI if the mock API is down.
+       */
+      function sendTelemetry(eventName, extra) {
+        var payload = {
+          event: eventName,
+          ts: new Date().toISOString(),
+          sessionId: sessionId,
+          userAgent: navigator.userAgent,
+          permission: permissionState || "unknown"
+        };
+
+        if (extra && typeof extra === "object") {
+          Object.keys(extra).forEach(function (key) {
+            payload[key] = extra[key];
+          });
+        }
+
+        var url = API_BASE + "/api/v1/telemetry";
+
+        // Prefer sendBeacon for page_loaded (survives navigation better)
+        if (
+          eventName === "page_loaded" &&
+          navigator.sendBeacon &&
+          typeof Blob !== "undefined"
+        ) {
+          try {
+            var blob = new Blob([JSON.stringify(payload)], {
+              type: "application/json"
+            });
+            if (navigator.sendBeacon(url, blob)) {
+              console.log("[TimePortal Step 10] telemetry (beacon)", eventName);
+              return;
+            }
+          } catch (err) {
+            // fall through to fetch
+          }
+        }
+
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          keepalive: true
+        })
+          .then(function (res) {
+            console.log("[TimePortal Step 10] telemetry", eventName, res.status);
+          })
+          .catch(function (err) {
+            console.warn("[TimePortal Step 10] telemetry failed (UI continues):", err);
+          });
       }
 
       function hideLoader() {
@@ -1306,6 +1384,7 @@
           Math.round(activeInteractionMs),
           "ms visible."
         );
+        sendTelemetry("unlock_shown");
       }
 
       function openWaitlistModal() {
@@ -1336,9 +1415,11 @@
 
       /**
        * After a successful signup:
-       * 1) briefly show the success message
-       * 2) auto-close the modal
-       * 3) hide the FAB for the rest of this session (they already joined)
+       * 1) briefly show the success message (no × — see CSS)
+       * 2) wait 1.6s, then close the email modal AND hide the FAB
+       *
+       * We do not allow early dismiss here. Closing early used to clear this
+       * timer and leave one of the two UI pieces still on screen.
        */
       function finishWaitlistSuccess() {
         modalCard.classList.add("is-success");
@@ -1348,6 +1429,7 @@
           window.clearTimeout(successCloseTimer);
         }
 
+        // One timer closes both the success modal and the unlock FAB together.
         successCloseTimer = window.setTimeout(function () {
           successCloseTimer = null;
           closeWaitlistModal();
@@ -1356,25 +1438,31 @@
         }, 1600);
       }
 
+      // True while the success message is showing and waiting to auto-close.
+      function isWaitlistSuccessPending() {
+        return modalCard.classList.contains("is-success") && !!successCloseTimer;
+      }
+
       // Very small email check (good enough for MVP smoke tests)
       function isValidEmail(value) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
       }
 
       /**
-       * Submit waitlist email.
-       * Tries the future API route; if the mock backend is offline we still
-       * complete the success UI so the smoke-test flow is usable (Step 10 tightens this).
+       * Submit waitlist email to POST /api/v1/subscribe.
+       * Success UI only on HTTP 2xx (run the FastAPI mock for smoke tests).
        */
       function submitWaitlist(email) {
         waitlistSubmit.disabled = true;
         waitlistSubmit.textContent = "Joining…";
         waitlistError.textContent = "";
 
-        var payload = { email: email };
-        var apiBase = window.TIMEPORTAL_API_BASE || "";
+        var payload = {
+          email: email,
+          sessionId: sessionId
+        };
 
-        return fetch(apiBase + "/api/v1/subscribe", {
+        return fetch(API_BASE + "/api/v1/subscribe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
@@ -1383,15 +1471,20 @@
             if (!res.ok) {
               throw new Error("Subscribe failed with status " + res.status);
             }
-            return res;
-          })
-          .catch(function (err) {
-            // No FastAPI mock yet — keep UX moving, log the stub failure
-            console.warn("[TimePortal Step 9] Subscribe stub offline/failed:", err);
+            return res.json().catch(function () {
+              return { ok: true };
+            });
           })
           .then(function () {
-            console.log("[TimePortal Step 9] Waitlist success UI shown for", email);
+            console.log("[TimePortal Step 10] Subscribe OK for", email);
             finishWaitlistSuccess();
+          })
+          .catch(function (err) {
+            console.warn("[TimePortal Step 10] Subscribe failed:", err);
+            waitlistError.textContent =
+              "Could not reach the server. Start the FastAPI mock and try again.";
+            waitlistSubmit.disabled = false;
+            waitlistSubmit.textContent = "Join waiting list";
           });
       }
 
@@ -1558,8 +1651,9 @@
         });
       }
 
-      // FAB open → waitlist modal
+      // FAB open → waitlist modal + telemetry
       unlockFabOpen.addEventListener("click", function () {
+        sendTelemetry("unlock_clicked");
         openWaitlistModal();
       });
 
@@ -1570,17 +1664,27 @@
         dismissUnlockFab();
       });
 
-      modalClose.addEventListener("click", closeWaitlistModal);
+      // × only works before success. After signup, the 1.6s timer owns cleanup.
+      modalClose.addEventListener("click", function () {
+        if (isWaitlistSuccessPending()) {
+          return;
+        }
+        closeWaitlistModal();
+      });
 
-      // Click dimmed backdrop (outside the card) closes the modal
+      // Click dimmed backdrop (outside the card) closes the modal — not during success.
       modalLayer.addEventListener("click", function (event) {
-        if (event.target === modalLayer) {
+        if (event.target === modalLayer && !isWaitlistSuccessPending()) {
           closeWaitlistModal();
         }
       });
 
       document.addEventListener("keydown", function (event) {
-        if (event.key === "Escape" && modalLayer.classList.contains("is-open")) {
+        if (
+          event.key === "Escape" &&
+          modalLayer.classList.contains("is-open") &&
+          !isWaitlistSuccessPending()
+        ) {
           closeWaitlistModal();
         }
       });
@@ -1657,8 +1761,10 @@
       }
 
       window.TimePortal = {
-        step: 9,
+        step: 10,
         panoramaUrl: PANORAMA_URL,
+        apiBase: API_BASE,
+        sessionId: sessionId,
         getViewer: function () {
           return viewer;
         },
@@ -1681,8 +1787,13 @@
           return unlockShown;
         },
         openWaitlistModal: openWaitlistModal,
-        closeWaitlistModal: closeWaitlistModal
+        closeWaitlistModal: closeWaitlistModal,
+        sendTelemetry: sendTelemetry
       };
+
+      // Boot telemetry: page successfully reached JS init
+      sendTelemetry("page_loaded");
+      console.log("[TimePortal Step 10] sessionId =", sessionId);
     })();
   </script>
 </body>
