@@ -205,7 +205,7 @@ iOS often requires HTTPS for motion permission. Plain HTTP on LAN may fall back 
 ### Hotfix (from Samsung S25 feedback)
 1. **Top label overlap:** Brand stays top-left; permanent safety pill removed.
 2. **Safety UX decision:** Consent checkbox on the Start gate (recommended). Cleaner than always-on pill; user acknowledges before entering.
-3. **Browser chrome:** Fullscreen on Start + visible **Exit fullscreen** button while active.
+3. **Browser chrome:** Fullscreen on Start + top-right **icon toggle** (expand = enter, compress = exit).
 4. **Hint vs minimap overlap:** Control hint moved to screen center (auto-hides).
 5. Viewer `resize()` on rotate/fullscreen.
 

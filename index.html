@@ -191,7 +191,7 @@
       pointer-events: auto;
     }
 
-    /* Top bar: brand left, exit-fullscreen right (no permanent safety pill) */
+    /* Top bar: brand left, fullscreen toggle right */
     #top-bar {
       position: absolute;
       top: calc(0.65rem + var(--safe-top));
@@ -214,27 +214,52 @@
     }
 
     /*
-      Exit fullscreen button — only shown while the browser is in fullscreen.
-      pointer-events re-enabled via .interactive
+      Fullscreen toggle (icon only).
+      Expand arrows = enter fullscreen.
+      Compress arrows = exit fullscreen.
     */
-    #exit-fullscreen-btn {
+    #fullscreen-btn {
       appearance: none;
-      display: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       flex-shrink: 0;
+      width: 2.35rem;
+      height: 2.35rem;
       margin: 0;
+      padding: 0;
       border: var(--border);
       background: var(--surface);
       color: var(--text);
-      font: inherit;
-      font-size: 0.68rem;
-      font-weight: 600;
-      line-height: 1.25;
-      padding: 0.4rem 0.55rem;
       cursor: pointer;
     }
 
-    #exit-fullscreen-btn.is-visible {
-      display: inline-block;
+    #fullscreen-btn:active {
+      transform: scale(0.96);
+    }
+
+    #fullscreen-btn svg {
+      width: 1.15rem;
+      height: 1.15rem;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Show the matching icon for the current state */
+    #fullscreen-btn .icon-exit {
+      display: none;
+    }
+
+    #fullscreen-btn.is-fullscreen .icon-enter {
+      display: none;
+    }
+
+    #fullscreen-btn.is-fullscreen .icon-exit {
+      display: block;
     }
 
     #minimap {
@@ -438,8 +463,7 @@
   <div id="app">
     <div id="step5-banner" role="status">
       <strong>Step 5 UX check:</strong>
-      Tick the safety box, then Start. Drag hint should be centered (not on minimap).
-      In fullscreen, use “Exit fullscreen” top-right.
+      Tick the safety box, then Start. Use the top-right fullscreen icon to enter/exit.
     </div>
 
     <!-- z0: panorama preloads under the gate -->
@@ -457,14 +481,36 @@
         <div id="watermark" class="placeholder-box">
           TimePortal // Checkpoint Charlie
         </div>
-        <!-- Only appears while the page is in browser fullscreen -->
+        <!-- Icon toggle: enter (expand) / exit (compress) fullscreen -->
         <button
-          id="exit-fullscreen-btn"
+          id="fullscreen-btn"
           class="interactive"
           type="button"
-          aria-label="Exit fullscreen"
+          aria-label="Enter fullscreen"
+          title="Fullscreen"
         >
-          Exit fullscreen
+          <!-- Expand arrows (enter fullscreen) -->
+          <svg class="icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+            <polyline points="9 3 3 3 3 9"></polyline>
+            <line x1="3" y1="3" x2="10" y2="10"></line>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="21" y1="3" x2="14" y2="10"></line>
+            <polyline points="9 21 3 21 3 15"></polyline>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+            <polyline points="15 21 21 21 21 15"></polyline>
+            <line x1="21" y1="21" x2="14" y2="14"></line>
+          </svg>
+          <!-- Compress arrows (exit fullscreen) -->
+          <svg class="icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+            <polyline points="4 14 10 14 10 20"></polyline>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+            <polyline points="20 14 14 14 14 20"></polyline>
+            <line x1="21" y1="21" x2="14" y2="14"></line>
+            <polyline points="4 10 10 10 10 4"></polyline>
+            <line x1="3" y1="3" x2="10" y2="10"></line>
+            <polyline points="20 10 14 10 14 4"></polyline>
+            <line x1="21" y1="3" x2="14" y2="10"></line>
+          </svg>
         </button>
       </div>
       <div id="minimap" class="placeholder-box">Minimap placeholder</div>
@@ -524,7 +570,7 @@
       var uiLayer = document.getElementById("ui-layer");
       var controlHint = document.getElementById("control-hint");
       var safetyCheck = document.getElementById("safety-check");
-      var exitFullscreenBtn = document.getElementById("exit-fullscreen-btn");
+      var fullscreenBtn = document.getElementById("fullscreen-btn");
 
       var viewer = null;
       var panoramaReady = false;
@@ -593,17 +639,27 @@
         }
       }
 
-      // Show/hide the Exit fullscreen button based on browser state
-      function syncFullscreenButton() {
-        var active =
+      // Are we currently in browser fullscreen?
+      function isFullscreenActive() {
+        return !!(
           document.fullscreenElement ||
           document.webkitFullscreenElement ||
-          null;
+          null
+        );
+      }
+
+      // Update icon + accessible label for enter vs exit
+      function syncFullscreenButton() {
+        var active = isFullscreenActive();
 
         if (active) {
-          exitFullscreenBtn.classList.add("is-visible");
+          fullscreenBtn.classList.add("is-fullscreen");
+          fullscreenBtn.setAttribute("aria-label", "Exit fullscreen");
+          fullscreenBtn.setAttribute("title", "Exit fullscreen");
         } else {
-          exitFullscreenBtn.classList.remove("is-visible");
+          fullscreenBtn.classList.remove("is-fullscreen");
+          fullscreenBtn.setAttribute("aria-label", "Enter fullscreen");
+          fullscreenBtn.setAttribute("title", "Enter fullscreen");
         }
 
         resizeViewer();
@@ -643,7 +699,7 @@
         }
       }
 
-      // Leave fullscreen when the user taps the exit button
+      // Leave fullscreen mode
       function exitFullscreen() {
         var exit =
           document.exitFullscreen ||
@@ -651,18 +707,32 @@
           document.webkitCancelFullScreen;
 
         if (!exit) {
-          return;
+          return Promise.resolve(false);
         }
 
         try {
           var result = exit.call(document);
-          if (result && typeof result.catch === "function") {
-            result.catch(function (err) {
+          if (result && typeof result.then === "function") {
+            return result.then(function () {
+              return true;
+            }).catch(function (err) {
               console.warn("[TimePortal Step 5] exitFullscreen failed:", err);
+              return false;
             });
           }
+          return Promise.resolve(true);
         } catch (err) {
           console.warn("[TimePortal Step 5] exitFullscreen error:", err);
+          return Promise.resolve(false);
+        }
+      }
+
+      // One button: enter when windowed, exit when fullscreen
+      function toggleFullscreen() {
+        if (isFullscreenActive()) {
+          exitFullscreen().then(syncFullscreenButton);
+        } else {
+          tryEnterFullscreen().then(syncFullscreenButton);
         }
       }
 
@@ -783,8 +853,8 @@
         startExperience();
       });
 
-      exitFullscreenBtn.addEventListener("click", function () {
-        exitFullscreen();
+      fullscreenBtn.addEventListener("click", function () {
+        toggleFullscreen();
       });
 
       // Keep the 360 canvas matched to the visible area

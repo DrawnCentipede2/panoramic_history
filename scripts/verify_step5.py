@@ -20,7 +20,10 @@ checks = {
     "has_viewer_resize": "viewer.resize" in html,
     "has_safety_consent": 'id="safety-check"' in html,
     "no_persistent_safety_pill": 'id="safety-alert"' not in html,
-    "has_exit_fullscreen_btn": 'id="exit-fullscreen-btn"' in html,
+    "has_fullscreen_toggle_btn": 'id="fullscreen-btn"' in html,
+    "has_toggle_fullscreen_fn": "function toggleFullscreen" in html,
+    "has_enter_icon": 'class="icon-enter"' in html,
+    "has_exit_icon": 'class="icon-exit"' in html,
     "hint_centered": "top: 42%" in html,
 }
 
