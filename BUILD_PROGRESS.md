@@ -13,7 +13,7 @@ Last updated: 2026-07-19
 |------|------|--------|
 | 1 | Project scaffold + full-screen HTML shell | ✅ Done |
 | 2 | Dark theme CSS + z-index overlay layers | ✅ Done |
-| 3 | Pannellum + loading spinner + test panorama | ⏸️ Waiting on user cross-check |
+| 3 | Pannellum + loading spinner + test panorama | ✅ Done |
 | 4 | Onboarding gate UI (no permission yet) | ⏳ Pending |
 | 5 | Device orientation permission + touch fallback | ⏳ Pending |
 | 6 | Auto-rotate affordance + kill on input | ⏳ Pending |
@@ -149,12 +149,12 @@ Wire pinned Pannellum 2.5.7, show a loading spinner, render a local placeholder 
 
 ### Verification result
 - Agent self-check: ✅ `python scripts/verify_step3.py` → `ALL_OK`; local placeholder saved
-- User cross-check: ⏸️ Waiting
-- Marked complete: ❌ Not yet
+- User cross-check: ✅ Pass (2026-07-19) — drag/swipe works; overall looks good
+- Marked complete: ✅ Yes
 
 ### Notes
 - Warm archival brown tokens lightly applied (`#1a1612`); full palette polish later.
-- Gate is non-blocking in Step 3 so panorama drag can be tested.
+- Clarification: “no scroll” = the HTML page/body must not move. Mouse-wheel / pinch zoom on the 360 view is normal Pannellum behavior (not page scrolling).
 
 ---
 
